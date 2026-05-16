@@ -1,6 +1,7 @@
 import { gameEvents } from '../../application/EventEmitter';
 import { GameEngine } from '../../application/GameEngine';
 import { inputManager } from '../input/InputManager';
+import { CONSUMABLE_DEFS } from '../../domain/constants/GameData';
 
 export class CanvasRenderer {
     canvas: HTMLCanvasElement;
@@ -61,6 +62,32 @@ export class CanvasRenderer {
             ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(engine.player.x, engine.player.y, engine.player.radius, 0, Math.PI*2); ctx.fill();
             ctx.font = '28px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(engine.player.emoji, engine.player.x, engine.player.y+2);
         }
+
+        let s = engine.activeBuffs.find(b => b.type === 'shield');
+        if(s) {
+            ctx.strokeStyle = '#3498db'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(engine.player.x, engine.player.y, engine.player.radius+10, 0, Math.PI*2); ctx.stroke();
+        }
+
+        engine.consumablesOnGround.forEach(c => {
+            let def = CONSUMABLE_DEFS[c.id];
+            ctx.shadowColor = 'yellow'; ctx.shadowBlur = 10;
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.font='16px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(def?.icon||'❓', c.x, c.y);
+        });
+
+        engine.areaEffects.forEach(a => {
+            ctx.save();
+            ctx.translate(a.x, a.y);
+            if(a.ang !== undefined) ctx.rotate(a.ang);
+            if(a.type === 'acid') { ctx.fillStyle = 'rgba(46, 204, 113, 0.4)'; ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill(); }
+            if(a.type === 'gas') { ctx.fillStyle = 'rgba(149, 165, 166, 0.5)'; ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill(); }
+            if(a.type === 'pitch') { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill(); }
+            if(a.type === 'ice') { ctx.fillStyle = 'rgba(52, 152, 219, 0.6)'; ctx.fillRect(-a.w!/2, -a.h!/2, a.w!, a.h!); }
+            if(a.type === 'bomb') { ctx.fillStyle = 'rgba(231, 76, 60, 0.5)'; ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill(); }
+            ctx.restore();
+        });
 
         engine.floatingTexts.forEach(ft => { ctx.fillStyle=ft.c; ctx.font='bold 16px Arial'; ctx.fillText(ft.t, ft.x, ft.y); });
         

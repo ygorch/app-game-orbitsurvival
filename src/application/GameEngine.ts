@@ -3,7 +3,9 @@ import { Enemy } from '../domain/entities/Enemy';
 import { Weapon } from '../domain/entities/Weapon';
 import { Projectile } from '../domain/entities/Projectile';
 import { Orb } from '../domain/entities/Orb';
-import { ENEMY_DEFS, WEAPONS_INFO, ACHIEVEMENT_DEFS } from '../domain/constants/GameData';
+import { ConsumableOnGround } from '../domain/entities/ConsumableOnGround';
+import { AreaEffect } from '../domain/entities/AreaEffect';
+import { ENEMY_DEFS, WEAPONS_INFO, ACHIEVEMENT_DEFS, CONSUMABLE_DEFS } from '../domain/constants/GameData';
 import { gameEvents } from './EventEmitter';
 import { inputManager } from '../infrastructure/input/InputManager';
 import { saveService } from './SaveService';
@@ -25,6 +27,12 @@ export class GameEngine {
     gameState: 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAMEOVER' = 'PLAYING';
     MAP_SIZE = 2000;
     animationFrameId = 0;
+    
+    inventory: string[] = [];
+    consumablesOnGround: any[] = [];
+    areaEffects: any[] = [];
+    activeBuffs: {id: string, type: string, val: number, timer: number, tickCounter: number}[] = [];
+    keyHoldTimers: number[] = [0,0,0,0,0];
     
     playerTakenDamage = false;
     totalDamageDealt = 0;
@@ -52,6 +60,7 @@ export class GameEngine {
         this.playerLevel = 1; this.playerXp = 0; this.xpNeeded = 5; this.killStats = {};
         this.levelRerolled = false;
         this.enemies = []; this.orbs = []; this.projectiles = []; this.floatingTexts = [];
+        this.inventory = []; this.consumablesOnGround = []; this.areaEffects = []; this.activeBuffs = []; this.keyHoldTimers = [0,0,0,0,0];
         this.gameState = 'PLAYING';
         this.updateHUD();
         this.loop();
@@ -99,26 +108,47 @@ export class GameEngine {
         }
         this.updateHUD();
         
-        let pool: any[] = [];
-        Object.keys(WEAPONS_INFO).forEach(id => {
-            if(!this.weapons.some(w => w.id === id) && this.weapons.length < 4) {
+        let choices: any[] = [];
+        
+        // 1x Garantido: Upgrade
+        let upgWeapons = this.weapons.filter(w => w.level < w.maxLevel);
+        if(upgWeapons.length > 0) {
+            let w = upgWeapons[Math.floor(Math.random()*upgWeapons.length)];
+            choices.push({t:'upg', ref:w, n:`Evoluir ${w.name}`, d:`<span class="text-green-400 font-bold">Nível ${w.level+1}</span><br>Aumenta o Dano Bruto e a Área de Impacto/Velocidade.`, i:w.icon});
+        }
+        
+        // 1x Garantido: Nova Arma
+        if(this.weapons.length < 3) {
+            let newWs = Object.keys(WEAPONS_INFO).filter(id => !this.weapons.some(w => w.id === id));
+            if(newWs.length > 0) {
+                let id = newWs[Math.floor(Math.random()*newWs.length)];
                 let info = WEAPONS_INFO[id];
-                pool.push({ t:'new', id:id, n:`Nova Arma: ${info.name}`, d:`<span class="text-primary-fixed-dim text-xs uppercase">${info.type}</span><br>${info.desc}`, i: info.icon });
+                choices.push({ t:'new', id:id, n:`Nova Arma: ${info.name}`, d:`<span class="text-primary-fixed-dim text-xs uppercase">${info.type}</span><br>${info.desc}`, i: info.icon });
             }
+        }
+        
+        let pool: any[] = [];
+        pool.push({t:'stat', s:'str', n:'Força Titânica', d:'<span class="text-green-400 font-bold">+5 STR</span><br>Aumenta dano físico.', i:'⚔️'});
+        pool.push({t:'stat', s:'agi', n:'Agilidade Felina', d:'<span class="text-green-400 font-bold">+5 AGI</span><br>Reduz Cooldown.', i:'⚡'});
+        pool.push({t:'stat', s:'sta', n:'Estamina Inabalável', d:'<span class="text-green-400 font-bold">+5 STA</span><br>Aumenta HP Max e Armadura.', i:'🛡️'});
+        pool.push({t:'stat', s:'int', n:'Conhecimento Arcano', d:'<span class="text-green-400 font-bold">+5 INT</span><br>Aumenta dano mágico.', i:'🧠'});
+        pool.push({t:'stat', s:'dex', n:'Destreza Certeira', d:'<span class="text-green-400 font-bold">+5 DEX</span><br>Aumenta dano à distância.', i:'🎯'});
+        pool.push({t:'stat', s:'luk', n:'Sorte do Tolo', d:'<span class="text-green-400 font-bold">+5 LUK</span><br>Chance de Crítico e Esquiva.', i:'🍀'});
+        
+        Object.keys(CONSUMABLE_DEFS).forEach(k => {
+            let def = CONSUMABLE_DEFS[k];
+            pool.push({t:'consumable', id: k, n: def.name, d: `<span class="text-primary-fixed-dim text-xs uppercase">Consumível</span><br>${def.desc}`, i: def.icon});
         });
-        this.weapons.forEach(w => {
-            if(w.level < w.maxLevel) pool.push({t:'upg', ref:w, n:`Evoluir ${w.name}`, d:`<span class="text-green-400 font-bold">Nível ${w.level+1}</span><br>Aumenta o Dano Bruto e a Área de Impacto/Velocidade.`, i:w.icon});
-        });
-        pool.push({t:'stat', s:'str', n:'Força Titânica', d:'<span class="text-green-400 font-bold">+5 STR</span><br>Aumenta muito o dano de Machado, Espada e Facas.', i:'⚔️'});
-        pool.push({t:'stat', s:'agi', n:'Agilidade Felina', d:'<span class="text-green-400 font-bold">+5 AGI</span><br>Reduz o Tempo de Recarga (Cooldown) de TODAS as armas.', i:'⚡'});
-        pool.push({t:'stat', s:'sta', n:'Estamina Inabalável', d:'<span class="text-green-400 font-bold">+5 STA</span><br>Aumenta muito a Vida Máxima, Armadura e o dano da Aura Mágica.', i:'🛡️'});
-        pool.push({t:'stat', s:'int', n:'Conhecimento Arcano', d:'<span class="text-green-400 font-bold">+5 INT</span><br>Aumenta drasticamente o dano da Varinha Teleguiada e Aura.', i:'🧠'});
-        pool.push({t:'stat', s:'dex', n:'Destreza Certeira', d:'<span class="text-green-400 font-bold">+5 DEX</span><br>Aumenta muito o dano de Armas de Fogo e concede bônus parcial a Espadas.', i:'🎯'});
-        pool.push({t:'stat', s:'luk', n:'Sorte do Tolo', d:'<span class="text-green-400 font-bold">+5 LUK</span><br>Aumenta a chance global de Acerto Crítico (2x Dano) e Esquiva de golpes.', i:'🍀'});
+        
         pool.push({t:'heal', n:'Benção de Sangue', d:'Milagre das ruínas. Restaura instantaneamente 100% da sua Vida.', i:'❤️'});
+        pool.push({t:'gold', n:'Bolsa de Ouro', d:'Adquire 100 moedas de ouro.', i:'💰'});
 
         pool.sort(() => Math.random() - 0.5);
-        let choices = pool.slice(0,3);
+
+        while(choices.length < 6 && pool.length > 0) {
+            choices.push(pool.pop());
+        }
+
         this.levelUpData = { choices, rerolled: this.levelRerolled, hp: this.player.hp, gold: this.runGold };
         gameEvents.emit('STATE_CHANGE', 'LEVEL_UP');
         gameEvents.emit('LEVEL_UP', this.levelUpData);
@@ -128,7 +158,12 @@ export class GameEngine {
         if(c.t === 'new') this.weapons.push(new Weapon(c.id));
         else if(c.t === 'upg') c.ref.level++;
         else if(c.t === 'stat') { (this.player as any)[c.s] += 5; this.player.calcDerivedStats(); }
+        else if(c.t === 'consumable') {
+            if(this.inventory.length < 5) this.inventory.push(c.id);
+            else this.consumablesOnGround.push(new ConsumableOnGround(this.player.x, this.player.y, c.id));
+        }
         else if(c.t === 'heal') this.player.hp = this.player.maxHp;
+        else if(c.t === 'gold') { this.runGold += 100; saveService.data.gold += 100; saveService.save(); }
         this.levelUpData = null;
         this.gameState = 'PLAYING';
         this.updateHUD();
@@ -168,13 +203,96 @@ export class GameEngine {
         this.floatingTexts.push({x, y, t, c, life: 45});
     }
 
+    useConsumable(idx: number) {
+        let id = this.inventory[idx];
+        if(!id) return;
+        let def = CONSUMABLE_DEFS[id];
+        if(!def) return;
+        
+        if(def.type === 'heal_over_time') {
+            this.activeBuffs.push({id, type: def.type, val: def.val, timer: def.duration*60, tickCounter: 5*60});
+        } else if(def.type === 'shield') {
+            let sIdx = this.activeBuffs.findIndex(b => b.type === 'shield');
+            if(sIdx >= 0) this.activeBuffs[sIdx].val = Math.max(this.activeBuffs[sIdx].val, def.val);
+            else this.activeBuffs.push({id, type: def.type, val: def.val, timer: 99999, tickCounter: 0});
+        } else if(def.type === 'speed') {
+            this.activeBuffs.push({id, type: def.type, val: def.val, timer: def.duration*60, tickCounter: 0});
+        } else if(def.type === 'instant_aoe') {
+            this.areaEffects.push(new AreaEffect('bomb', this.player.x, this.player.y, this.player.radius*10, 5));
+            this.enemies.forEach(e => {
+                if(Math.hypot(e.x-this.player.x, e.y-this.player.y) < this.player.radius*10) {
+                    this.dealDamageToEnemy(e, def.val, false);
+                }
+            });
+        } else if(def.type === 'field_dmg') {
+            this.areaEffects.push(new AreaEffect('acid', this.player.x, this.player.y, this.player.radius*7, def.duration*60));
+        } else if(def.type === 'field_slow_dmg') {
+            this.areaEffects.push(new AreaEffect('gas', this.player.x, this.player.y, this.player.radius*8, def.duration*60));
+        } else if(def.type === 'field_trap') {
+            this.areaEffects.push(new AreaEffect('pitch', this.player.x, this.player.y, 80, def.duration*60));
+        } else if(def.type === 'wall') {
+            let move = inputManager.getMovement();
+            let ang = Math.atan2(move.dy, move.dx);
+            if(move.dx===0 && move.dy===0) ang = Math.PI/2;
+            let px = this.player.x - Math.cos(ang)*50;
+            let py = this.player.y - Math.sin(ang)*50;
+            this.areaEffects.push(new AreaEffect('ice', px, py, 0, def.duration*60, 50, 200, ang + Math.PI/2));
+        }
+        
+        this.inventory.splice(idx, 1);
+        this.updateHUD();
+    }
+
     loop = () => {
         if(this.gameState !== 'PLAYING') return;
         try {
             this.frames++; this.survivalFrames++;
             
+            // Inventory input
+            ['1','2','3','4','5'].forEach((k, idx) => {
+                if(inputManager.keys[k]) {
+                    if(this.inventory[idx]) {
+                        this.keyHoldTimers[idx]++;
+                        if(this.keyHoldTimers[idx] === 180) { // drop
+                            this.consumablesOnGround.push(new ConsumableOnGround(this.player.x, this.player.y, this.inventory[idx]));
+                            this.inventory.splice(idx, 1);
+                            this.keyHoldTimers[idx] = 0;
+                            inputManager.keys[k] = false;
+                            this.updateHUD();
+                        }
+                    }
+                } else {
+                    if(this.keyHoldTimers[idx] > 0 && this.keyHoldTimers[idx] < 180) {
+                        this.useConsumable(idx);
+                    }
+                    this.keyHoldTimers[idx] = 0;
+                }
+            });
+            
+            // Active Buffs
+            let currentSpeedMult = 1;
+            let shieldStacks = 0;
+            for(let i=this.activeBuffs.length-1; i>=0; i--) {
+                let b = this.activeBuffs[i];
+                if(b.type === 'shield') {
+                    shieldStacks += b.val;
+                } else if(b.type === 'speed') {
+                    currentSpeedMult = Math.max(currentSpeedMult, b.val);
+                    b.timer--;
+                } else if(b.type === 'heal_over_time') {
+                    b.timer--;
+                    b.tickCounter--;
+                    if(b.tickCounter <= 0) {
+                        this.player.hp = Math.min(this.player.maxHp, this.player.hp + b.val);
+                        this.createFloatingText(this.player.x, this.player.y-20, `+${b.val}`, '#2ecc71');
+                        b.tickCounter = 5*60;
+                    }
+                }
+                if(b.type !== 'shield' && b.timer <= 0) this.activeBuffs.splice(i,1);
+            }
+
             let move = inputManager.getMovement();
-            this.player.update(move.dx, move.dy, this.MAP_SIZE);
+            this.player.update(move.dx * currentSpeedMult, move.dy * currentSpeedMult, this.MAP_SIZE);
         
         let mins = this.survivalFrames / 3600;
         let maxIdx = Math.min(5, Math.floor(mins));
@@ -265,10 +383,18 @@ export class GameEngine {
             let e = this.enemies[i]; 
             let dist = e.update(this.player.x, this.player.y, viewDist);
             if(dist < e.r + this.player.radius) {
-                let hit = this.player.takeDamage(e.dmg);
-                if(hit.dmg > 0) { this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c'); this.playerTakenDamage = true; }
-                else if(hit.dodged) this.createFloatingText(this.player.x, this.player.y-20, "DODGE!", '#3498db');
-                if(this.player.hp <= 0) this.gameOver(false);
+                let sIdx = this.activeBuffs.findIndex(b => b.type === 'shield');
+                if(sIdx >= 0) {
+                    this.createFloatingText(this.player.x, this.player.y-20, "BLOCKED!", '#3498db');
+                    this.activeBuffs[sIdx].val--;
+                    if(this.activeBuffs[sIdx].val <= 0) this.activeBuffs.splice(sIdx, 1);
+                    e.x += (e.x - this.player.x) * 0.5; e.y += (e.y - this.player.y) * 0.5;
+                } else {
+                    let hit = this.player.takeDamage(e.dmg);
+                    if(hit.dmg > 0) { this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c'); this.playerTakenDamage = true; }
+                    else if(hit.dodged) this.createFloatingText(this.player.x, this.player.y-20, "DODGE!", '#3498db');
+                    if(this.player.hp <= 0) this.gameOver(false);
+                }
             }
 
             if(e.hp <= 0) {
@@ -281,6 +407,13 @@ export class GameEngine {
                     let v = 1; if(e.maxHp>100) v=10; if(e.maxHp>400) v=50;
                     if(Math.random() < 0.5) this.orbs.push(new Orb(e.x, e.y, v));
                     if(Math.random() < (saveService.data.skills.greed * 0.02)) { this.runGold++; saveService.data.gold++; if(saveService.data.gold >= 1000) this.checkAchievement('rich_1000'); }
+                    
+                    let dropChance = e.maxHp > 100 ? 0.05 : 0.01;
+                    if(Math.random() < dropChance) {
+                        let cKeys = Object.keys(CONSUMABLE_DEFS);
+                        let randomCons = cKeys[Math.floor(Math.random()*cKeys.length)];
+                        this.consumablesOnGround.push(new ConsumableOnGround(e.x, e.y, randomCons));
+                    }
                 }
                 this.enemies.splice(i,1);
             }
@@ -292,6 +425,63 @@ export class GameEngine {
 
         if(this.frames % 30 === 0) this.updateHUD();
         
+        // Consumables on ground update
+        for(let i=this.consumablesOnGround.length-1; i>=0; i--) {
+            let c = this.consumablesOnGround[i];
+            c.despawnTimer--;
+            if(c.despawnTimer <= 0) { this.consumablesOnGround.splice(i,1); continue; }
+            if(this.inventory.length < 5) {
+                if(Math.hypot(this.player.x-c.x, this.player.y-c.y) < this.player.radius+c.r) {
+                    this.inventory.push(c.id);
+                    this.consumablesOnGround.splice(i,1);
+                    this.updateHUD();
+                }
+            }
+        }
+
+        // Area Effects
+        for(let i=this.areaEffects.length-1; i>=0; i--) {
+            let a = this.areaEffects[i];
+            a.timer--;
+            
+            if(a.type === 'acid' || a.type === 'gas' || a.type === 'pitch') {
+                if(this.frames % 60 === 0) {
+                    let def = a.type === 'acid' ? CONSUMABLE_DEFS['acid'] : (a.type==='gas' ? CONSUMABLE_DEFS['gas'] : null);
+                    this.enemies.forEach(e => {
+                        if(Math.hypot(e.x-a.x, e.y-a.y) < a.r) {
+                            if(a.type === 'acid') this.dealDamageToEnemy(e, def!.val, false);
+                            if(a.type === 'gas') { this.dealDamageToEnemy(e, def!.val, false); }
+                        }
+                    });
+                }
+            }
+            if(a.timer <= 0) this.areaEffects.splice(i,1);
+        }
+        
+        // Ice Barrier pushback and Trap slow
+        this.enemies.forEach(e => {
+            let inSlow = false;
+            this.areaEffects.forEach(a => {
+                if((a.type === 'gas' || a.type === 'pitch') && Math.hypot(e.x-a.x, e.y-a.y) < a.r) {
+                    inSlow = true;
+                    e.speedModifier = a.type === 'pitch' ? 0.2 : 0.5;
+                }
+                if(a.type === 'ice') {
+                    let dx = e.x - a.x; let dy = e.y - a.y;
+                    let rotDx = dx * Math.cos(-a.ang!) - dy * Math.sin(-a.ang!);
+                    let rotDy = dx * Math.sin(-a.ang!) + dy * Math.cos(-a.ang!);
+                    let hw = a.w!/2, hh = a.h!/2;
+                    let cx = Math.max(-hw, Math.min(hw, rotDx));
+                    let cy = Math.max(-hh, Math.min(hh, rotDy));
+                    let px = rotDx - cx; let py = rotDy - cy;
+                    if(px*px + py*py < e.r*e.r) {
+                        e.x += Math.cos(a.ang!)*px; e.y += Math.sin(a.ang!)*py;
+                    }
+                }
+            });
+            if(!inSlow) e.speedModifier = 1;
+        });
+
         gameEvents.emit('RENDER_TICK', this);
         
         if (this.gameState === 'PLAYING') {

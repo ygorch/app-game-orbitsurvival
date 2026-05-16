@@ -42,3 +42,18 @@ export const ACHIEVEMENT_DEFS: Record<string, {name: string, desc: string, icon:
     slayer: { name: 'Carrasco', desc: 'Abata 100 inimigos em uma run.', icon: '⚔️' },
     gladiator: { name: 'Gladiador', desc: 'Cause um total de 1.000 de dano em uma run.', icon: '💥' }
 };
+
+export const CONSUMABLE_DEFS: Record<string, {name: string, icon: string, desc: string, type: string, val: number, duration: number}> = {
+    'hp_red': { name: 'Poção Vermelha', icon: '❤️', desc: 'Cura 5 HP a cada 5s por 30s.', type: 'heal_over_time', val: 5, duration: 30 },
+    'hp_yellow': { name: 'Poção Amarela', icon: '💛', desc: 'Cura 10 HP a cada 5s por 30s.', type: 'heal_over_time', val: 10, duration: 30 },
+    'hp_white': { name: 'Poção Branca', icon: '🤍', desc: 'Cura 15 HP a cada 5s por 30s.', type: 'heal_over_time', val: 15, duration: 30 },
+    'shield_green': { name: 'Proteção Verde', icon: '🛡️', desc: 'Bloqueia 1 ataque.', type: 'shield', val: 1, duration: 0 },
+    'shield_blue': { name: 'Proteção Azul', icon: '💠', desc: 'Bloqueia até 3 ataques.', type: 'shield', val: 3, duration: 0 },
+    'agi_orange': { name: 'Agilidade Laranja', icon: '🟠', desc: '+30% Vel. por 5s.', type: 'speed', val: 1.3, duration: 5 },
+    'agi_purple': { name: 'Agilidade Roxa', icon: '🟣', desc: '+30% Vel. por 10s.', type: 'speed', val: 1.3, duration: 10 },
+    'bomb': { name: 'Bomba', icon: '💣', desc: 'Explosão causando 35 de dano em área.', type: 'instant_aoe', val: 35, duration: 0 },
+    'acid': { name: 'Ácido', icon: '🧪', desc: 'Poça de ácido (10 dano/s).', type: 'field_dmg', val: 10, duration: 15 },
+    'gas': { name: 'Gás', icon: '💨', desc: 'Névoa letal (lentidão + 5 dano/s).', type: 'field_slow_dmg', val: 5, duration: 15 },
+    'ice': { name: 'Barreira de Gelo', icon: '🧊', desc: 'Muralha intransponível temporária.', type: 'wall', val: 0, duration: 15 },
+    'pitch': { name: 'Piche', icon: '🛢️', desc: 'Poça de piche (lentidão).', type: 'field_trap', val: 0, duration: 15 }
+};

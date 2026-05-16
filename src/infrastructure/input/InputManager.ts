@@ -1,5 +1,5 @@
 export class InputManager {
-    keys: Record<string, boolean> = { w: false, a: false, s: false, d: false };
+    keys: Record<string, boolean> = { w: false, a: false, s: false, d: false, '1': false, '2': false, '3': false, '4': false, '5': false };
     mouseX: number = 0; mouseY: number = 0;
     isMouseDown: boolean = false;
     canvasWidth: number = 1920; canvasHeight: number = 1080;
