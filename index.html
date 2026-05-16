@@ -1,0 +1,729 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>SourLate - Build & Stats Update</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400..800&family=Inter:wght@400;600&family=Archivo+Narrow:wght@600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#99907c", "secondary": "#dfc29f", "surface-container": "#20201f",
+                        "on-background": "#e5e2e1", "primary-fixed-dim": "#e9c349", "surface-variant": "#353535",
+                        "primary-container": "#d4af37", "primary": "#f2ca50", "error": "#ffb4ab", "on-surface": "#e5e2e1",
+                        "background": "#131313", "surface": "#131313"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["EB Garamond", "serif"], "body-md": ["Inter", "sans-serif"],
+                        "headline-xl": ["EB Garamond", "serif"], "stat-lg": ["Archivo Narrow", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .wood-bg { background-color: #2C1A16; background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.08" mix-blend-mode="multiply"/></svg>'); }
+        .leather-inset { background-color: #3E2723; box-shadow: inset 0 4px 8px rgba(0,0,0,0.8); border: 1px solid #1A1A1A; }
+        .metal-frame { background-color: #1A1A1A; border-top: 1px solid #d4af37; box-shadow: 0 4px 8px rgba(0,0,0,0.85); }
+        .metal-button { background: linear-gradient(to bottom, #d4af37, #735c00); border-top: 1px solid #ffe088; box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.2); transition: all 0.1s ease; color: #3c2f00;}
+        .metal-button:active { transform: translateY(2px); box-shadow: inset 0 4px 6px rgba(0,0,0,0.8); border-top: 1px solid transparent; }
+        .metal-button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; }
+        .embossed-text { text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 -1px 1px rgba(255,255,255,0.1); }
+        .glow-border { box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(212, 175, 55, 0.3); border-color: #f2ca50 !important; }
+
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        .pointer-events-none-override { pointer-events: none; }
+        .pointer-events-auto-override { pointer-events: auto; }
+        #gameCanvas { display: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen w-screen overflow-hidden wood-bg flex flex-col font-body-md text-body-md select-none">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- TOP NAVIGATION -->
+    <header id="topNav" class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-surface-container-highest border-b-4 border-primary-container shadow-[0_4px_0_0_rgba(0,0,0,0.5)]">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-3xl cursor-pointer pointer-events-auto-override" onclick="uiHamburgerClick()">menu</span>
+            <h1 class="font-headline-xl text-4xl text-primary drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">SourLate</h1>
+        </div>
+        <div class="flex items-center gap-4 pointer-events-auto-override">
+            <div class="flex items-center gap-1 leather-inset px-3 py-1 rounded-sm">
+                <span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                <span id="topGoldDisplay" class="font-stat-lg text-primary-fixed-dim">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main id="uiMain" class="flex-1 mt-20 relative w-full h-full flex flex-col pointer-events-none-override z-10">
+
+        <!-- MAIN MENU -->
+        <section id="screen-title" class="w-full h-full flex flex-col items-center justify-center gap-8 pointer-events-auto-override transition-opacity duration-300">
+            <h1 class="font-headline-xl text-[80px] text-primary tracking-widest uppercase embossed-text mb-2 text-center leading-none">SourLate</h1>
+            <p class="font-headline-md text-secondary mb-8">Sobreviva. Evolua. Construa sua Build.</p>
+            <div class="flex flex-col gap-4 w-full max-w-sm">
+                <button class="metal-button font-headline-lg px-8 py-4 uppercase tracking-widest" onclick="uiShowCharSelect()">Jogar</button>
+                <button class="metal-button font-headline-lg px-8 py-4 uppercase tracking-widest" onclick="uiShowSkillTree()">Cofre Ancestral (Skills)</button>
+            </div>
+        </section>
+
+        <!-- ÁRVORE DE HABILIDADES -->
+        <section id="screen-skill-tree" class="hidden w-full h-full flex flex-col items-center justify-start gap-4 pointer-events-auto-override overflow-y-auto pb-20 pt-6 transition-opacity duration-300">
+            <h2 class="font-headline-xl text-4xl text-primary uppercase embossed-text">Cofre de Metaprogresso</h2>
+
+            <div class="flex flex-col lg:flex-row gap-6 w-full max-w-6xl px-4 mt-4">
+                <div id="skillTreeGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4 flex-[2] overflow-y-auto max-h-[60vh] pr-2"></div>
+
+                <div class="metal-frame p-6 flex-1 flex flex-col gap-4">
+                    <div class="flex items-center gap-4 border-b border-[#333] pb-4">
+                        <div id="previewIcon" class="text-5xl">❓</div>
+                        <div>
+                            <h3 id="previewName" class="text-xl text-primary font-bold">Selecione uma Arte</h3>
+                            <p id="previewLevel" class="text-secondary text-sm">Nível --/--</p>
+                        </div>
+                    </div>
+                    <p id="previewDesc" class="text-sm text-gray-300 min-h-[80px] leading-relaxed">Clique em uma habilidade ao lado para ler os pergaminhos antigos e entender seu poder.</p>
+                    <div class="bg-[#111] p-4 border border-[#333] mb-2 flex-1">
+                        <h4 class="text-primary-fixed-dim text-xs mb-2 uppercase tracking-widest">Efeito da Melhoria</h4>
+                        <div id="previewStats" class="text-sm text-on-surface-variant">Nenhum atributo selecionado.</div>
+                    </div>
+                    <button id="previewBtnBuy" class="metal-button py-4 font-bold uppercase w-full mt-auto tracking-widest" disabled onclick="uiBuySkill()">Confirmar (0 💰)</button>
+                </div>
+            </div>
+            <button class="metal-button mt-4 font-headline-md px-12 py-3 uppercase tracking-widest" onclick="uiBackToTitle()">Voltar ao Menu</button>
+        </section>
+
+        <!-- SELEÇÃO DE PERSONAGEM -->
+        <section id="screen-char-select" class="hidden w-full h-full flex flex-col items-center justify-start gap-6 pointer-events-auto-override overflow-y-auto pb-20 pt-6 transition-opacity duration-300">
+            <h2 class="font-headline-xl text-4xl text-primary tracking-widest uppercase embossed-text">Preparação</h2>
+
+            <div class="flex flex-col md:flex-row gap-6 w-full justify-center px-4">
+                <div class="metal-frame border-4 border-surface-variant p-1 w-full max-w-[280px] cursor-pointer transition-transform hover:scale-105 opacity-80 hover:opacity-100 hero-card" onclick="uiSelectHero('fugitivo', this)">
+                    <div class="leather-inset p-4 h-full flex flex-col items-center gap-2">
+                        <div class="w-full aspect-square bg-surface-highest border border-outline flex items-center justify-center text-[70px]">🥷</div>
+                        <h3 class="font-headline-lg text-on-surface border-b border-outline w-full text-center pb-1">The Fugitive</h3>
+                        <p class="text-sm text-secondary text-center">Ágil e Furtivo. Inicia com bônus enormes de Destreza e Agilidade.</p>
+                    </div>
+                </div>
+                <div class="metal-frame border-4 border-surface-variant p-1 w-full max-w-[280px] cursor-pointer transition-transform hover:scale-105 opacity-80 hover:opacity-100 hero-card" onclick="uiSelectHero('escudeiro', this)">
+                    <div class="leather-inset p-4 h-full flex flex-col items-center gap-2">
+                        <div class="w-full aspect-square bg-surface-highest border border-outline flex items-center justify-center text-[70px]">🛡️</div>
+                        <h3 class="font-headline-lg text-on-surface border-b border-outline w-full text-center pb-1">The Squire</h3>
+                        <p class="text-sm text-secondary text-center">Forte como um touro. Inicia com Força bruta, muito HP e armadura natural.</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="font-headline-lg text-secondary mt-2">Relíquia Inicial</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full justify-center px-4 max-w-4xl">
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('axe', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">🪓</span><h4 class="text-primary mt-1 font-bold text-sm">Machado</h4><span class="text-xs text-gray-400">Giro 360º (Auto)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('wand', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">🪄</span><h4 class="text-primary mt-1 font-bold text-sm">Varinha</h4><span class="text-xs text-gray-400">Teleguiada (Auto)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('aura', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">✨</span><h4 class="text-primary mt-1 font-bold text-sm">Aura</h4><span class="text-xs text-gray-400">Área (Auto)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('sword', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">⚔️</span><h4 class="text-primary mt-1 font-bold text-sm">Espada</h4><span class="text-xs text-gray-400">Corte Frontal (Clique)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('bow', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">🏹</span><h4 class="text-primary mt-1 font-bold text-sm">Arco</h4><span class="text-xs text-gray-400">Tiro Longo (Clique)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('pistol', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">🔫</span><h4 class="text-primary mt-1 font-bold text-sm">Pistola</h4><span class="text-xs text-gray-400">Rajada Veloz (Clique)</span></div>
+                </div>
+                <div class="metal-frame border-2 border-surface-variant p-2 cursor-pointer opacity-80 hover:opacity-100 weapon-card" onclick="uiSelectWeapon('knife', this)">
+                    <div class="leather-inset p-2 flex flex-col items-center text-center h-full"><span class="text-4xl">🔪</span><h4 class="text-primary mt-1 font-bold text-sm">Facas</h4><span class="text-xs text-gray-400">Curto & Rápido (Clique)</span></div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-2 w-full max-w-md">
+                <button class="metal-button flex-1 font-headline-md py-3 uppercase" onclick="uiBackToTitle()">Voltar</button>
+                <button id="btnStartRun" class="metal-button flex-1 font-headline-md py-3 uppercase hidden" onclick="uiStartRun()">Explorar Ruínas</button>
+            </div>
+        </section>
+
+        <!-- IN-GAME HUD -->
+        <section id="screen-hud" class="hidden w-full h-full absolute inset-0 p-6 flex-col justify-between pointer-events-none-override">
+            <div class="w-full flex flex-col gap-1 pointer-events-auto-override max-w-5xl mx-auto">
+                <div class="w-full h-4 metal-frame relative flex items-center p-[1px]">
+                    <div id="hudXpBar" class="h-full bg-blue-600 w-0 border-r border-[#1A1A1A] transition-all duration-200"></div>
+                    <div class="absolute left-1/2 -translate-x-1/2 -top-2 w-12 h-12 bg-[#1A1A1A] rounded-full border-2 border-primary-container flex items-center justify-center">
+                        <span id="hudLevelBadge" class="font-stat-lg text-primary-fixed-dim">1</span>
+                    </div>
+                </div>
+                <div class="w-full flex justify-between mt-2">
+                    <div id="hudTimer" class="leather-inset px-4 py-1 font-headline-md text-on-surface-variant">00:00</div>
+                    <div class="flex gap-2">
+                        <div class="leather-inset px-3 py-1 flex gap-2"><span class="text-error">💀</span><span id="hudKills">0</span></div>
+                        <div class="leather-inset px-3 py-1 flex gap-2"><span class="text-primary">💰</span><span id="hudGold">0</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="w-full flex flex-col items-center gap-2 pointer-events-auto-override mb-4 max-w-4xl mx-auto">
+                <div class="w-full max-w-md metal-frame h-6 relative p-[2px] flex items-center justify-center">
+                    <div class="absolute inset-0 bg-[#3E2723]"></div>
+                    <div id="hudHpBar" class="absolute left-0 top-0 bottom-0 bg-[#8B0000] border-r border-black transition-all"></div>
+                    <span id="hudHpText" class="relative z-20 font-stat-sm text-white">100 / 100</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL UP MODAL -->
+        <section id="modal-levelup" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 pointer-events-auto-override">
+            <div class="w-full max-w-5xl metal-frame border-2 border-primary-container relative p-8 bg-[#2a2422]">
+                <h2 class="font-headline-xl text-4xl text-primary text-center mb-6 embossed-text">Poder Ancestral</h2>
+                <div id="levelUpGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"></div>
+                <div class="text-center w-full flex justify-center">
+                    <button id="btnReroll" class="metal-button py-2 px-8 font-headline-md flex items-center gap-2" onclick="engineReroll()">
+                        <span class="material-symbols-outlined">casino</span> Rerolar Destino (3 💰 ou 10 ❤️)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAUSE MODAL -->
+        <section id="modal-pause" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 p-4 pointer-events-auto-override overflow-y-auto">
+            <div class="w-full max-w-5xl metal-frame border-2 border-primary-container p-6 bg-[#1e1e1e]">
+                <h1 class="font-headline-xl text-4xl text-primary text-center embossed-text mb-6">MUNDO PAUSADO</h1>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="leather-inset p-4">
+                        <h3 class="text-primary border-b border-outline mb-2 font-headline-md flex items-center gap-2"><span class="text-2xl">👤</span> Atributos Físicos</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm" id="pauseStatsList"></div>
+                    </div>
+                    <div class="leather-inset p-4">
+                        <h3 class="text-primary border-b border-outline mb-2 font-headline-md flex items-center gap-2"><span class="text-2xl">🎒</span> Inventário</h3>
+                        <div class="flex flex-col gap-2" id="pauseWeaponList"></div>
+                    </div>
+                    <div class="leather-inset p-4">
+                        <h3 class="text-primary border-b border-outline mb-2 font-headline-md flex items-center gap-2"><span class="text-2xl">📜</span> Registro de Batalha</h3>
+                        <p class="text-sm">Tempo de Vida: <span id="pauseTime" class="text-secondary font-bold">00:00</span></p>
+                        <p class="text-sm">Ouro Poupado: <span id="pauseGold" class="text-primary font-bold">0</span></p>
+                        <p class="text-sm">XP Absorvida: <span id="pauseXp" class="text-blue-400 font-bold">0</span></p>
+                        <h4 class="mt-4 text-xs text-gray-400 uppercase tracking-widest border-b border-[#333] pb-1">Bestiário Caçado</h4>
+                        <div class="mt-2 text-xs text-on-surface-variant grid grid-cols-3 gap-1" id="pauseKillTracker"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4">
+                    <button class="metal-button py-3 px-8 font-headline-md uppercase tracking-widest" onclick="engineResumeGame()">Retornar ao Caos</button>
+                    <button class="metal-button py-3 px-8 font-headline-md uppercase tracking-widest" style="filter: hue-rotate(150deg);" onclick="location.reload()">Abandonar Luta</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- GAME OVER -->
+        <section id="screen-game-over" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 p-4 pointer-events-auto-override">
+            <div class="w-full max-w-md metal-frame border-2 border-error p-8 bg-[#1e1e1e] text-center">
+                <h1 id="goTitle" class="font-headline-xl text-error uppercase embossed-text mb-6">FIM DA LINHA</h1>
+                <div class="leather-inset p-4 space-y-2 mb-6 text-left text-lg">
+                    <div class="flex justify-between border-b border-[#333] pb-1"><span>Nível Alcançado:</span> <span id="goLevel" class="text-primary">1</span></div>
+                    <div class="flex justify-between border-b border-[#333] pb-1"><span>Minutos Vivos:</span> <span id="goTime" class="text-primary">00:00</span></div>
+                    <div class="flex justify-between border-b border-[#333] pb-1"><span>Monstros Mortos:</span> <span id="goKills" class="text-error">0</span></div>
+                    <div class="flex justify-between border-b border-[#333] pb-1"><span>Ouro Poupado:</span> <span id="goGold" class="text-primary-fixed-dim">0</span></div>
+                </div>
+                <button class="metal-button w-full py-4 font-headline-md uppercase tracking-widest" onclick="location.reload()">Aceitar o Destino</button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ==========================================
+        // UI, SYSTEM SAFE LOAD E STATE
+        // ==========================================
+        let selectedHeroId = null, selectedWeaponId = null;
+        let gameState = 'TITLE';
+        let selectedSkillForPurchase = null;
+
+        // Dicionário Estático das Armas com suas Descrições para a Tela de Level Up
+        const WEAPONS_INFO = {
+            'axe': { name: 'Machado', icon: '🪓', type: 'Curto Alcance (Auto)', desc: 'Giro letal de 360º ao seu redor. Escala muito bem com Força.' },
+            'sword': { name: 'Espada', icon: '⚔️', type: 'Curto Alcance (Clique)', desc: 'Corte frontal rápido em área. Escala com Força e Destreza.' },
+            'knife': { name: 'Facas', icon: '🔪', type: 'Curto Alcance (Clique)', desc: 'Ataques super rápidos e colados. Escala com Força e Agilidade.' },
+            'wand': { name: 'Varinha', icon: '🪄', type: 'Mágico (Auto-Aim)', desc: 'Dispara mísseis mágicos teleguiados. Escala com Inteligência.' },
+            'bow': { name: 'Arco', icon: '🏹', type: 'Longo Alcance (Clique)', desc: 'Dispara flechas velozes e perfurantes na mira. Escala muito com Destreza.' },
+            'pistol': { name: 'Pistola', icon: '🔫', type: 'Longo Alcance (Clique)', desc: 'Rajadas rápidas e precisas. Escala muito com Destreza e Agilidade.' },
+            'aura': { name: 'Aura', icon: '✨', type: 'Mágico (Passiva)', desc: 'Campo de força contínuo e mortífero. Escala com Inteligência e Estamina.' }
+        };
+
+        let defaultData = { gold: 50, skills: { speed: 0, damage: 0, hp: 0, magnet: 0, str: 0, agi: 0, sta: 0, int: 0, dex: 0, luk: 0, greed: 0, xp: 0 } };
+        let saveData = defaultData;
+
+        try {
+            let savedRaw = JSON.parse(localStorage.getItem('sourlate_rpg_v2'));
+            if(savedRaw && typeof savedRaw === 'object' && savedRaw.skills) {
+                saveData.gold = savedRaw.gold || 0;
+                for(let key in defaultData.skills) { saveData.skills[key] = savedRaw.skills[key] !== undefined ? savedRaw.skills[key] : 0; }
+            }
+        } catch (e) { console.warn("Save anterior incompatível."); }
+
+        function saveGame() {
+            localStorage.setItem('sourlate_rpg_v2', JSON.stringify(saveData));
+            let disp = document.getElementById('topGoldDisplay'); if(disp) disp.innerText = saveData.gold;
+        }
+        saveGame();
+
+        const SKILL_DEFS = {
+            str: { name: 'Força Titânica', desc: 'Aumenta o ataque de armas de curto alcance (Machado, Espada, Faca). Fortalece golpes físicos devastadores.', cost: 150, max: 5, icon: '⚔️', attr: '+2 STR' },
+            agi: { name: 'Agilidade Felina', desc: 'Reduz o tempo de recarga (Cooldown) de todas as armas. Ataques tornam-se borrões mortais.', cost: 150, max: 5, icon: '⚡', attr: '+2 AGI' },
+            sta: { name: 'Estamina Inabalável', desc: 'Aumenta o HP Máximo, a Armadura passiva, e a velocidade de movimento. Fortalece o dano base da Aura.', cost: 150, max: 5, icon: '🛡️', attr: '+2 STA' },
+            int: { name: 'Conhecimento Arcano', desc: 'Aumenta o multiplicador de dano de armas puramente mágicas como a Varinha Teleguiada e a Aura de Força.', cost: 150, max: 5, icon: '🧠', attr: '+2 INT' },
+            dex: { name: 'Destreza Certeira', desc: 'Aumenta muito o dano de armas de longo alcance (Arco, Pistola) e concede um bônus moderado para as de corpo-a-corpo.', cost: 150, max: 5, icon: '🎯', attr: '+2 DEX' },
+            luk: { name: 'Sorte do Tolo', desc: 'Aumenta a chance de Acerto Crítico (2x Dano) em todos os ataques e fornece chance passiva de Esquiva.', cost: 200, max: 5, icon: '🍀', attr: '+2 LUK' },
+            speed: { name: 'Passos Leves', desc: 'Aumenta a Velocidade Base de caminhada em 5% por nível.', cost: 100, max: 5, icon: '👟', attr: '+5% SPD' },
+            damage: { name: 'Brutalidade', desc: 'Aumenta o dano final global de todas as fontes de ataque em 10% por nível.', cost: 250, max: 5, icon: '💪', attr: '+10% DMG' },
+            hp: { name: 'Coração de Dragão', desc: 'Reforça o recipiente vital do herói, concedendo mais vida máxima base.', cost: 100, max: 5, icon: '❤️', attr: '+15 HP' },
+            xp: { name: 'Sábio', desc: 'Aumenta a quantidade de experiência absorvida em 5% por nível, garantindo evolução acelerada.', cost: 150, max: 5, icon: '📜', attr: '+5% XP Gain' },
+            greed: { name: 'Avareza', desc: 'Aumenta a chance dos monstros largarem Ouro Brilhante direto em suas mãos sem precisar coletar.', cost: 300, max: 5, icon: '💰', attr: '+2% Gold Drop' },
+            magnet: { name: 'Ímã de Almas', desc: 'Orbes de XP voarão até você de distâncias maiores.', cost: 150, max: 5, icon: '🧲', attr: '+20px Área' }
+        };
+
+        window.hideAllScreens = function() { ['screen-title', 'screen-skill-tree', 'screen-char-select', 'screen-hud', 'modal-levelup', 'modal-pause', 'screen-game-over'].forEach(id => document.getElementById(id).classList.add('hidden')); };
+        window.uiShowTitleMenu = function() { window.hideAllScreens(); document.getElementById('screen-title').classList.remove('hidden'); gameState = 'TITLE'; };
+        window.uiBackToTitle = function() { window.uiShowTitleMenu(); };
+        window.uiHamburgerClick = function() { if (gameState === 'PLAYING') enginePauseGame(); else if (gameState === 'PAUSED') engineResumeGame(); else if (gameState !== 'GAMEOVER') window.uiShowTitleMenu(); };
+
+        window.uiShowSkillTree = function() {
+            window.hideAllScreens(); document.getElementById('screen-skill-tree').classList.remove('hidden'); gameState = 'SKILL_TREE';
+            selectedSkillForPurchase = null; window.uiUpdateSkillPreview(null);
+
+            const grid = document.getElementById('skillTreeGrid'); grid.innerHTML = '';
+            for (let key in SKILL_DEFS) {
+                const s = SKILL_DEFS[key]; const cur = saveData.skills[key];
+                const div = document.createElement('div');
+                div.className = `leather-inset p-3 flex flex-col items-center text-center cursor-pointer border-2 border-transparent transition-colors hover:border-primary`;
+                div.innerHTML = `<div class="text-4xl mb-2">${s.icon}</div><h3 class="text-primary font-bold leading-tight text-sm">${s.name} <br><span class="text-xs text-gray-400">(Nv ${cur}/${s.max})</span></h3>`;
+
+                div.onclick = () => {
+                    document.querySelectorAll('#skillTreeGrid > div').forEach(d => d.classList.remove('border-primary', 'bg-[#4a322d]'));
+                    div.classList.add('border-primary', 'bg-[#4a322d]');
+                    window.uiUpdateSkillPreview(key);
+                };
+                grid.appendChild(div);
+            }
+        };
+
+        window.uiUpdateSkillPreview = function(key) {
+            const btn = document.getElementById('previewBtnBuy');
+            if(!key) {
+                document.getElementById('previewIcon').innerText = '❓'; document.getElementById('previewName').innerText = 'Nenhuma Seleção';
+                document.getElementById('previewLevel').innerText = 'Nível --/--'; document.getElementById('previewDesc').innerText = 'Selecione um pergaminho ao lado.';
+                document.getElementById('previewStats').innerText = 'Nenhum atributo em foco.';
+                btn.disabled = true; btn.innerText = 'Confirmar (0 💰)'; return;
+            }
+
+            selectedSkillForPurchase = key;
+            const s = SKILL_DEFS[key]; const cur = saveData.skills[key]; const cost = s.cost * (cur + 1); const isMax = cur >= s.max;
+
+            document.getElementById('previewIcon').innerText = s.icon; document.getElementById('previewName').innerText = s.name;
+            document.getElementById('previewLevel').innerText = `Nível Atual: ${cur} de ${s.max}`; document.getElementById('previewDesc').innerText = s.desc;
+
+            if(isMax) {
+                document.getElementById('previewStats').innerHTML = `<span class="text-secondary">Poder Extremo Alcançado. (${s.attr})</span>`;
+                btn.disabled = true; btn.innerText = 'MÁXIMO ALCANÇADO';
+            } else {
+                document.getElementById('previewStats').innerHTML = `Evolução ao comprar: <span class="text-error font-bold">${cur}</span> ➡️ <span class="text-green-500 font-bold">${cur+1}</span> <br> Bônus Passivo: <span class="text-primary">${s.attr}</span> por nível.`;
+                btn.disabled = saveData.gold < cost;
+                btn.innerText = saveData.gold < cost ? `Ouro Insuficiente (${cost} 💰)` : `Aprender Habilidade (${cost} 💰)`;
+            }
+        };
+
+        window.uiBuySkill = function() {
+            if(!selectedSkillForPurchase) return;
+            const s = SKILL_DEFS[selectedSkillForPurchase]; const cur = saveData.skills[selectedSkillForPurchase]; const cost = s.cost * (cur + 1);
+            if(cur < s.max && saveData.gold >= cost) {
+                saveData.gold -= cost; saveData.skills[selectedSkillForPurchase]++; saveGame();
+                window.uiShowSkillTree();
+                const cards = document.getElementById('skillTreeGrid').children;
+                const idx = Object.keys(SKILL_DEFS).indexOf(selectedSkillForPurchase);
+                if(cards[idx]) cards[idx].click();
+            }
+        };
+
+        window.uiShowCharSelect = function() { window.hideAllScreens(); document.getElementById('screen-char-select').classList.remove('hidden'); gameState = 'CHAR_SELECT'; };
+        window.uiSelectHero = function(id, el) { selectedHeroId = id; document.querySelectorAll('.hero-card').forEach(c => { c.classList.remove('glow-border','border-primary'); c.classList.add('border-surface-variant','opacity-80'); }); el.classList.add('glow-border','border-primary'); el.classList.remove('border-surface-variant','opacity-80'); window.checkStartReady(); };
+        window.uiSelectWeapon = function(id, el) { selectedWeaponId = id; document.querySelectorAll('.weapon-card').forEach(c => { c.classList.remove('glow-border','border-primary'); c.classList.add('border-surface-variant','opacity-80'); }); el.classList.add('glow-border','border-primary'); el.classList.remove('border-surface-variant','opacity-80'); window.checkStartReady(); };
+        window.checkStartReady = function() { if (selectedHeroId && selectedWeaponId) document.getElementById('btnStartRun').classList.remove('hidden'); };
+
+        window.uiStartRun = function() {
+            window.hideAllScreens(); document.getElementById('topNav').classList.add('hidden'); document.getElementById('screen-hud').classList.remove('hidden'); document.getElementById('gameCanvas').style.display = 'block';
+            startGameEngine();
+        };
+
+        // ==========================================
+        // GAME ENGINE - LÓGICA & RPG
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        const MAP_SIZE = 2000; const keys = { w:false, a:false, s:false, d:false };
+        let mouseX = 0, mouseY = 0; let isMouseDown = false;
+
+        window.addEventListener('mousemove', e => { mouseX = e.clientX - canvas.width/2; mouseY = e.clientY - canvas.height/2; });
+        window.addEventListener('mousedown', () => isMouseDown = true);
+        window.addEventListener('mouseup', () => isMouseDown = false);
+        window.addEventListener('keydown', e => {
+            let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = true;
+            if(e.code === 'Escape' || k === 'p') { if(gameState==='PLAYING') enginePauseGame(); else if(gameState==='PAUSED') engineResumeGame(); }
+        });
+        window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = false; });
+
+        let player, weapons, projectiles, enemies, orbs, floatingTexts;
+        let frames, survivalFrames, kills, runGold, playerLevel, playerXp, xpNeeded;
+        let killStats = {}; let levelRerolled = false;
+
+        const ENEMY_DEFS = [
+            { emoji: '💀', hp: 30, spd: 1.5, dmg: 10 }, { emoji: '👾', hp: 50, spd: 1.8, dmg: 20 }, { emoji: '👻', hp: 80, spd: 1.2, dmg: 30 },
+            { emoji: '👽', hp: 60, spd: 2.8, dmg: 45 }, { emoji: '👺', hp: 150, spd: 2.0, dmg: 65 }, { emoji: '👹', hp: 500, spd: 0.9, dmg: 100 }
+        ];
+
+        class Player {
+            constructor(type) {
+                this.x = 0; this.y = 0; this.radius = 16; this.emoji = type === 'fugitivo' ? '🥷' : '🛡️';
+
+                this.str = saveData.skills.str * 2; this.agi = saveData.skills.agi * 2; this.sta = saveData.skills.sta * 2;
+                this.int = saveData.skills.int * 2; this.dex = saveData.skills.dex * 2; this.luk = saveData.skills.luk * 2;
+
+                if (type === 'fugitivo') { this.str+=5; this.agi+=15; this.sta+=5; this.int+=5; this.dex+=15; this.luk+=10; this.baseHp = 90; this.baseArmor = 0; this.baseSpeed = 4.0; }
+                else { this.str+=15; this.agi+=5; this.sta+=15; this.int+=5; this.dex+=5; this.luk+=5; this.baseHp = 120; this.baseArmor = 1; this.baseSpeed = 3.0; }
+
+                this.calcDerivedStats(); this.hp = this.maxHp; this.invuln = 0;
+            }
+            calcDerivedStats() {
+                let oldMax = this.maxHp || 0;
+                this.maxHp = this.baseHp + (this.sta * 5) + (saveData.skills.hp * 15);
+                if(this.maxHp > oldMax && oldMax > 0) this.hp += (this.maxHp - oldMax);
+
+                this.armor = this.baseArmor + Math.floor(this.sta / 10);
+                this.speed = this.baseSpeed * (1 + this.sta * 0.005) * (1 + saveData.skills.speed * 0.05);
+                this.critChance = this.luk * 0.001;
+                this.dodgeChance = this.luk * 0.001;
+                this.magnet = 60 + (saveData.skills.magnet * 20);
+            }
+            update() {
+                let dx=0, dy=0;
+                if(keys.w) dy-=1; if(keys.s) dy+=1; if(keys.a) dx-=1; if(keys.d) dx+=1;
+                if(dx!==0 || dy!==0) { let l = Math.sqrt(dx*dx+dy*dy); this.x += (dx/l)*this.speed; this.y += (dy/l)*this.speed; }
+                this.x = Math.max(-MAP_SIZE, Math.min(MAP_SIZE, this.x)); this.y = Math.max(-MAP_SIZE, Math.min(MAP_SIZE, this.y));
+                if(this.invuln>0) this.invuln--;
+            }
+            takeDamage(amt) {
+                if(this.invuln>0) return;
+                if(Math.random() < this.dodgeChance) { createFloatingText(this.x, this.y-20, "DODGE!", '#3498db'); this.invuln=20; return; }
+                let dmg = Math.max(1, amt - this.armor);
+                this.hp -= dmg; this.invuln = 30; createFloatingText(this.x, this.y-20, `-${dmg}`, '#e74c3c');
+                if(this.hp<=0) engineGameOver(false);
+            }
+            draw(ctx) {
+                if(this.invuln>0 && frames%8<4) return;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+                ctx.font = '28px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(this.emoji, this.x, this.y+2);
+            }
+        }
+
+        class Weapon {
+            constructor(id) {
+                this.id = id; this.level = 1; this.maxLevel = 5; this.timer = 0;
+                let i = WEAPONS_INFO[id];
+                this.name = i.name; this.icon = i.icon; this.type = i.type.includes('Auto') || i.type.includes('Passiva') ? 'auto' : 'manual';
+
+                if(id==='axe') { this.baseDmg=15; this.baseCd=72; this.dmgType='melee'; }
+                else if(id==='sword') { this.baseDmg=10; this.baseCd=42; this.dmgType='melee'; }
+                else if(id==='knife') { this.baseDmg=6; this.baseCd=20; this.dmgType='melee'; }
+                else if(id==='wand') { this.baseDmg=10; this.baseCd=48; this.dmgType='magic'; }
+                else if(id==='bow') { this.baseDmg=13; this.baseCd=48; this.dmgType='ranged'; }
+                else if(id==='pistol') { this.baseDmg=8; this.baseCd=20; this.dmgType='ranged'; }
+                else if(id==='aura') { this.baseDmg=5; this.baseCd=60; this.dmgType='aura'; this.r=80; }
+            }
+            get damage() {
+                let base = this.baseDmg + (this.level*2); let mult = 1;
+                if(this.dmgType==='melee') mult += (player.str*0.02) + (player.dex*0.01);
+                else if(this.dmgType==='ranged') mult += (player.dex*0.02) + (player.agi*0.01);
+                else if(this.dmgType==='magic') mult += (player.int*0.02) + (player.dex*0.01);
+                else if(this.dmgType==='aura') mult += (player.int*0.01) + (player.sta*0.01);
+                return base * mult * (1 + saveData.skills.damage*0.1);
+            }
+            get cooldown() { return Math.max(10, this.baseCd / (1 + player.agi*0.015)); }
+
+            update() {
+                this.timer--; if(this.timer>0) return;
+                if(this.type === 'manual' && !isMouseDown) return;
+
+                let dmg = this.damage; let isCrit = Math.random() < player.critChance;
+                if(isCrit) dmg *= 2;
+
+                if(this.id === 'axe') {
+                    let r = 100 + (this.level*10);
+                    projectiles.push({isSlash:true, x:player.x, y:player.y, r:r, life:10, c:'#ecf0f1', full:true});
+                    enemies.forEach(e => { if(Math.hypot(e.x-player.x, e.y-player.y) < r) { e.takeDamage(dmg, isCrit); e.x += (e.x-player.x)*0.1; }});
+                    this.timer = this.cooldown;
+                } else if(this.id === 'sword' || this.id === 'knife') {
+                    let r = this.id==='sword' ? 80+(this.level*10) : 50+(this.level*5);
+                    let ang = Math.atan2(mouseY, mouseX);
+                    projectiles.push({isSlash:true, x:player.x, y:player.y, r:r, life:8, c:'#bdc3c7', full:false, ang:ang});
+                    enemies.forEach(e => {
+                        let d = Math.hypot(e.x-player.x, e.y-player.y);
+                        if(d < r) {
+                            let eAng = Math.atan2(e.y-player.y, e.x-player.x);
+                            let diff = Math.abs(eAng - ang); if(diff>Math.PI) diff = 2*Math.PI - diff;
+                            if(diff < Math.PI/3) { e.takeDamage(dmg, isCrit); e.x += Math.cos(ang)*(this.id==='sword'?20:5); e.y += Math.sin(ang)*(this.id==='sword'?20:5); }
+                        }
+                    });
+                    this.timer = this.cooldown;
+                } else if(this.id === 'wand') {
+                    let target = null; let min = 999999;
+                    enemies.forEach(e => { let d=(e.x-player.x)**2 + (e.y-player.y)**2; if(d<min){min=d;target=e;} });
+                    if(target) {
+                        let ang = Math.atan2(target.y-player.y, target.x-player.x);
+                        projectiles.push(new Projectile(player.x, player.y, Math.cos(ang)*10, Math.sin(ang)*10, dmg, 1, '#f1c40f', isCrit));
+                        this.timer = this.cooldown;
+                    }
+                } else if(this.id === 'bow' || this.id === 'pistol') {
+                    let ang = Math.atan2(mouseY, mouseX); let spd = this.id==='bow'?15:25;
+                    projectiles.push(new Projectile(player.x, player.y, Math.cos(ang)*spd, Math.sin(ang)*spd, dmg, this.id==='bow'?2:1, '#e67e22', isCrit));
+                    this.timer = this.cooldown;
+                } else if(this.id === 'aura') {
+                    let r = this.r + (this.level*15);
+                    enemies.forEach(e => { if(Math.hypot(e.x-player.x, e.y-player.y) < r) e.takeDamage(dmg, isCrit); });
+                    this.timer = this.cooldown;
+                }
+            }
+            drawAura(ctx) { if(this.id==='aura') { ctx.fillStyle='rgba(241,196,15,0.1)'; ctx.beginPath(); ctx.arc(player.x,player.y,this.r+(this.level*15),0,Math.PI*2); ctx.fill(); } }
+        }
+
+        class Projectile {
+            constructor(x,y,vx,vy,dmg,p,c,crit) { this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.dmg=dmg; this.p=p; this.c=c; this.crit=crit; this.life=60; }
+            update() { this.x+=this.vx; this.y+=this.vy; this.life--; }
+            draw(ctx) { ctx.fillStyle=this.c; ctx.beginPath(); ctx.arc(this.x,this.y,this.crit?10:6,0,Math.PI*2); ctx.fill(); }
+        }
+
+        class Enemy {
+            constructor(x, y, def) {
+                this.x = x; this.y = y; this.r = 16; this.emoji = def.emoji;
+                let scale = 1 + (playerLevel*0.1) + (survivalFrames/(60*60*5));
+                this.maxHp = Math.ceil(def.hp * scale); this.hp = this.maxHp;
+                this.speed = def.spd + (Math.random()*0.2); this.dmg = Math.ceil(def.dmg * (1+(scale*0.2)));
+                this.despawned = false;
+            }
+            takeDamage(amt, isCrit) {
+                this.hp -= amt; createFloatingText(this.x, this.y-20, Math.ceil(amt)+(isCrit?'!':''), isCrit?'#f1c40f':'#fff');
+            }
+            update() {
+                let dx = player.x-this.x; let dy = player.y-this.y; let dist = Math.hypot(dx,dy);
+                let view = Math.max(canvas.width, canvas.height);
+
+                if(dist < view * 0.9) {
+                    if(dist>0) { this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed; }
+                    if(dist < this.r + player.radius) player.takeDamage(this.dmg);
+                } else {
+                    this.x += (Math.random()-0.5)*this.speed; this.y += (Math.random()-0.5)*this.speed;
+                }
+
+                if(dist > view * 1.3) { this.hp = 0; this.despawned = true; }
+            }
+            draw(ctx) {
+                ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill();
+                ctx.font='24px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(this.emoji, this.x, this.y+2);
+            }
+        }
+
+        class Orb {
+            constructor(x,y,val) { this.x=x; this.y=y; this.v=val; this.r=val===1?6:(val===10?10:14); this.c=val===1?'#3498db':(val===10?'#f1c40f':'#e74c3c'); this.p=false; }
+            update() { let dx=player.x-this.x; let dy=player.y-this.y; let dSq=dx*dx+dy*dy; if(this.p || dSq<player.magnet**2) { this.p=true; let d=Math.sqrt(dSq); if(d>0){this.x+=(dx/d)*15; this.y+=(dy/d)*15;} } }
+            draw(ctx) { ctx.fillStyle=this.c; ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill(); }
+        }
+
+        window.enginePauseGame = function() {
+            gameState = 'PAUSED';
+            document.getElementById('modal-pause').classList.remove('hidden');
+
+            let m = Math.floor((survivalFrames/60)/60).toString().padStart(2,'0'); let s = Math.floor((survivalFrames/60)%60).toString().padStart(2,'0');
+            document.getElementById('pauseTime').innerText = `${m}:${s}`; document.getElementById('pauseGold').innerText = runGold; document.getElementById('pauseXp').innerText = Math.floor(playerXp);
+
+            document.getElementById('pauseStatsList').innerHTML = `
+                <div class="col-span-2 text-center text-primary border-b border-[#333] pb-1 mb-1">Status Atuais na Run</div>
+                <div>STR: <span class="text-error font-bold">${player.str}</span></div>
+                <div>AGI: <span class="text-primary-fixed-dim font-bold">${player.agi}</span></div>
+                <div>STA: <span class="text-green-500 font-bold">${player.sta}</span></div>
+                <div>INT: <span class="text-blue-400 font-bold">${player.int}</span></div>
+                <div>DEX: <span class="text-purple-400 font-bold">${player.dex}</span></div>
+                <div>LUK: <span class="text-yellow-400 font-bold">${player.luk}</span></div>
+                <div class="col-span-2 text-xs border-t border-[#333] pt-2 mt-1">Crítico: ${(player.critChance*100).toFixed(1)}% &nbsp;|&nbsp; Esquiva: ${(player.dodgeChance*100).toFixed(1)}% &nbsp;|&nbsp; Defesa Fixo: ${player.armor}</div>
+            `;
+
+            let wList = ''; weapons.forEach(w => wList += `<div class="flex items-center gap-3 bg-[#111] p-2 border border-[#333] rounded"><span class="text-3xl">${w.icon}</span> <span><span class="font-bold text-primary">${w.name}</span> <br><span class="text-xs text-gray-400">Nível ${w.level}</span></span></div>`);
+            document.getElementById('pauseWeaponList').innerHTML = wList || 'Nenhuma';
+
+            let kList = ''; for(let k in killStats) kList += `<div class="bg-[#111] border border-[#333] px-2 py-2 rounded text-center flex flex-col"><span class="text-2xl">${k}</span> <span class="font-bold">${killStats[k]}</span></div>`;
+            document.getElementById('pauseKillTracker').innerHTML = kList || 'Nenhum sangue derramado.';
+        };
+
+        window.engineResumeGame = function() { document.getElementById('modal-pause').classList.add('hidden'); gameState = 'PLAYING'; requestAnimationFrame(gameLoop); };
+
+        function startGameEngine() {
+            player = new Player(selectedHeroId); weapons = [new Weapon(selectedWeaponId)];
+            frames=0; survivalFrames=0; kills=0; runGold=0; playerLevel=1; playerXp=0; xpNeeded=5; killStats={}; levelRerolled=false;
+            enemies=[]; orbs=[]; projectiles=[]; floatingTexts=[];
+            gameState = 'PLAYING'; engineUpdateHUD(); requestAnimationFrame(gameLoop);
+        }
+
+        function engineUpdateHUD() {
+            document.getElementById('hudXpBar').style.width = `${(playerXp/xpNeeded)*100}%`;
+            document.getElementById('hudLevelBadge').innerText = playerLevel;
+            document.getElementById('hudGold').innerText = runGold; document.getElementById('hudKills').innerText = kills;
+            let m = Math.floor((survivalFrames/60)/60).toString().padStart(2,'0'); let s = Math.floor((survivalFrames/60)%60).toString().padStart(2,'0');
+            document.getElementById('hudTimer').innerText = `${m}:${s}`;
+            document.getElementById('hudHpBar').style.width = `${Math.max(0,player.hp)/player.maxHp*100}%`;
+            document.getElementById('hudHpText').innerText = `${Math.ceil(Math.max(0,player.hp))} / ${player.maxHp}`;
+        }
+
+        window.collectOrb = function(orb) {
+            let xpGain = orb.v * (1 + (saveData.skills.xp * 0.05));
+            playerXp += xpGain;
+            if (playerXp >= xpNeeded) { window.engineLevelUp(); }
+            engineUpdateHUD();
+        };
+
+        window.engineReroll = function() {
+            if(levelRerolled) { alert("Os deuses antigos permitem apenas 1 Reroll por nível!"); return; }
+            if(runGold >= 3) { runGold -= 3; }
+            else if(player.hp > 15) { player.hp -= 10; }
+            else { alert("Recursos Insuficientes para Reroll!"); return; }
+            levelRerolled = true; window.engineLevelUp(true);
+        };
+
+        window.engineLevelUp = function(isReroll = false) {
+            if(!isReroll) { gameState = 'LEVEL_UP'; playerXp -= xpNeeded; playerLevel++; xpNeeded = playerLevel*10; levelRerolled = false; }
+            engineUpdateHUD(); document.getElementById('modal-levelup').classList.remove('hidden');
+            const grid = document.getElementById('levelUpGrid'); grid.innerHTML = '';
+
+            let pool = [];
+
+            // O Segredo está aqui: A formatação avançada de descrição!
+            ['axe','sword','knife','wand','bow','pistol','aura'].forEach(id => {
+                if(!weapons.some(w=>w.id===id) && weapons.length < 4) {
+                    let info = WEAPONS_INFO[id];
+                    pool.push({ t:'new', id:id, n:`Nova Arma: ${info.name}`, d:`<span class="text-primary-fixed-dim text-xs uppercase">${info.type}</span><br>${info.desc}`, i: info.icon });
+                }
+            });
+
+            weapons.forEach(w => {
+                if(w.level<w.maxLevel) pool.push({t:'upg', ref:w, n:`Evoluir ${w.name}`, d:`<span class="text-green-400 font-bold">Nível ${w.level+1}</span><br>Aumenta o Dano Bruto e a Área de Impacto/Velocidade.`, i:w.icon});
+            });
+
+            pool.push({t:'stat', s:'str', n:'Força Titânica', d:'<span class="text-green-400 font-bold">+5 STR</span><br>Aumenta muito o dano de Machado, Espada e Facas.', i:'⚔️'});
+            pool.push({t:'stat', s:'agi', n:'Agilidade Felina', d:'<span class="text-green-400 font-bold">+5 AGI</span><br>Reduz o Tempo de Recarga (Cooldown) de TODAS as armas.', i:'⚡'});
+            pool.push({t:'stat', s:'sta', n:'Estamina Inabalável', d:'<span class="text-green-400 font-bold">+5 STA</span><br>Aumenta muito a Vida Máxima, Armadura e o dano da Aura Mágica.', i:'🛡️'});
+            pool.push({t:'stat', s:'int', n:'Conhecimento Arcano', d:'<span class="text-green-400 font-bold">+5 INT</span><br>Aumenta drasticamente o dano da Varinha Teleguiada e Aura.', i:'🧠'});
+            pool.push({t:'stat', s:'dex', n:'Destreza Certeira', d:'<span class="text-green-400 font-bold">+5 DEX</span><br>Aumenta muito o dano de Armas de Fogo e concede bônus parcial a Espadas.', i:'🎯'});
+            pool.push({t:'stat', s:'luk', n:'Sorte do Tolo', d:'<span class="text-green-400 font-bold">+5 LUK</span><br>Aumenta a chance global de Acerto Crítico (2x Dano) e Esquiva de golpes.', i:'🍀'});
+            pool.push({t:'heal', n:'Benção de Sangue', d:'Milagre das ruínas. Restaura instantaneamente 100% da sua Vida.', i:'❤️'});
+
+            pool.sort(()=>Math.random()-0.5); let choices = pool.slice(0,3);
+
+            choices.forEach(c => {
+                let div = document.createElement('div'); div.className = "leather-inset p-4 flex flex-col items-center gap-2 border border-[#1A1A1A] hover:border-primary cursor-pointer text-center";
+                div.innerHTML = `<div class="text-5xl mb-2">${c.i}</div><h4 class="text-primary font-bold text-lg leading-tight">${c.n}</h4><p class="text-sm text-gray-400 mb-4 flex-1">${c.d}</p><button class="metal-button w-full py-2 font-bold pointer-events-none mt-auto uppercase tracking-widest">Selecionar</button>`;
+                div.onclick = () => {
+                    if(c.t==='new') weapons.push(new Weapon(c.id)); else if(c.t==='upg') c.ref.level++;
+                    else if(c.t==='stat') { player[c.s]+=5; player.calcDerivedStats(); } else if(c.t==='heal') player.hp=player.maxHp;
+                    document.getElementById('modal-levelup').classList.add('hidden'); engineUpdateHUD(); gameState='PLAYING'; requestAnimationFrame(gameLoop);
+                };
+                grid.appendChild(div);
+            });
+
+            const btnReroll = document.getElementById('btnReroll');
+            btnReroll.disabled = levelRerolled;
+            btnReroll.innerHTML = levelRerolled ? `<span class="material-symbols-outlined">casino</span> Destino Selado` : `<span class="material-symbols-outlined">casino</span> Desafiar o Destino (3 💰 ou 10 ❤️)`;
+        };
+
+        function createFloatingText(x,y,t,c) { floatingTexts.push({x,y,t:t,c:c,life:45}); }
+
+        function engineGameOver(vic) {
+            gameState = 'GAMEOVER'; document.getElementById('screen-hud').classList.add('hidden');
+            saveData.gold += runGold; saveGame();
+            document.getElementById('goTitle').innerText = vic ? 'VITÓRIA' : 'MORTE INEVITÁVEL'; document.getElementById('goTitle').style.color = vic ? '#2ecc71' : '#e74c3c';
+            document.getElementById('goLevel').innerText = playerLevel; document.getElementById('goKills').innerText = kills; document.getElementById('goGold').innerText = runGold;
+            let m = Math.floor((survivalFrames/60)/60).toString().padStart(2,'0'); let s = Math.floor((survivalFrames/60)%60).toString().padStart(2,'0');
+            document.getElementById('goTime').innerText = `${m}:${s}`;
+            document.getElementById('screen-game-over').classList.remove('hidden');
+        }
+
+        function gameLoop() {
+            if(gameState!=='PLAYING') return; frames++; survivalFrames++;
+            ctx.fillStyle='#111'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            player.update();
+
+            let mins = survivalFrames/3600; let maxIdx = Math.min(5, Math.floor(mins));
+            let spawnRate = Math.floor(Math.max(5, 60 - (mins * 5)));
+
+            if(enemies.length < 300 && frames % spawnRate === 0) {
+                let count = frames < 100 ? 3 : 1;
+                for(let i=0; i<count; i++) {
+                    let ang = Math.random()*Math.PI*2; let r = (Math.max(canvas.width, canvas.height) / 2) + 100;
+                    enemies.push(new Enemy(player.x+Math.cos(ang)*r, player.y+Math.sin(ang)*r, ENEMY_DEFS[Math.floor(Math.random()*(maxIdx+1))]));
+                }
+            }
+
+            ctx.save(); ctx.translate(-player.x+canvas.width/2, -player.y+canvas.height/2);
+
+            ctx.fillStyle='#0a0a0f'; ctx.fillRect(-MAP_SIZE,-MAP_SIZE,MAP_SIZE*2,MAP_SIZE*2);
+            ctx.strokeStyle='#e74c3c'; ctx.lineWidth=10; ctx.strokeRect(-MAP_SIZE,-MAP_SIZE,MAP_SIZE*2,MAP_SIZE*2);
+            ctx.strokeStyle='#222'; ctx.lineWidth=2; ctx.beginPath();
+            for(let x=-MAP_SIZE; x<=MAP_SIZE; x+=200) { ctx.moveTo(x,-MAP_SIZE); ctx.lineTo(x,MAP_SIZE); ctx.moveTo(-MAP_SIZE,x); ctx.lineTo(MAP_SIZE,x); } ctx.stroke();
+
+            weapons.forEach(w => w.drawAura(ctx)); weapons.forEach(w => w.update());
+
+            for(let i=orbs.length-1; i>=0; i--) { let o=orbs[i]; o.update(); o.draw(ctx); if(Math.hypot(player.x-o.x, player.y-o.y) < player.radius+o.r) { window.collectOrb(o); orbs.splice(i,1); } }
+
+            for(let i=projectiles.length-1; i>=0; i--) {
+                let p=projectiles[i];
+                if(p.isSlash) {
+                    ctx.save(); ctx.translate(p.x, p.y);
+                    if(!p.full) { ctx.rotate(p.ang); ctx.beginPath(); ctx.arc(0,0,p.r,-Math.PI/4,Math.PI/4); }
+                    else { ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); }
+                    ctx.strokeStyle=`rgba(255,255,255,${p.life/10})`; ctx.lineWidth=10; ctx.stroke(); ctx.restore();
+                    p.life--; if(p.life<=0) projectiles.splice(i,1); continue;
+                }
+                p.update(); p.draw(ctx);
+                for(let j=enemies.length-1; j>=0; j--) { let e=enemies[j]; if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+8) { e.takeDamage(p.dmg, p.crit); p.p--; if(p.p<=0){p.life=0;break;} } }
+                if(p.life<=0) projectiles.splice(i,1);
+            }
+
+            for(let i=enemies.length-1; i>=0; i--) {
+                let e=enemies[i]; e.update(); e.draw(ctx);
+                if(e.hp<=0) {
+                    if(!e.despawned) {
+                        kills++; killStats[e.emoji] = (killStats[e.emoji]||0)+1;
+                        let v = 1; if(e.maxHp>100) v=10; if(e.maxHp>400) v=50;
+                        if(Math.random() < 0.5) orbs.push(new Orb(e.x, e.y, v));
+                        if(Math.random() < (saveData.skills.greed * 0.02)) { runGold++; saveData.gold++; }
+                    }
+                    enemies.splice(i,1);
+                }
+            }
+
+            player.draw(ctx);
+            for(let i=floatingTexts.length-1; i>=0; i--) { let ft=floatingTexts[i]; ctx.fillStyle=ft.c; ctx.font='bold 16px Arial'; ctx.fillText(ft.t, ft.x, ft.y); ft.y-=1; ft.life--; if(ft.life<=0) floatingTexts.splice(i,1); }
+            ctx.restore();
+
+            if(frames%30===0) engineUpdateHUD();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.uiShowTitleMenu();
+    </script>
+</body>
+</html>
