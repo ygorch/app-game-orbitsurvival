@@ -3,7 +3,7 @@ import { gameEvents } from '../../application/EventEmitter';
 import { engine } from '../../application/GameEngine';
 
 export default function LevelUpModal() {
-    const [data, setData] = useState<{choices: any[], rerolled: boolean, hp: number, gold: number} | null>(null);
+    const [data, setData] = useState<{choices: any[], rerolled: boolean, hp: number, gold: number} | null>(engine.levelUpData);
 
     useEffect(() => {
         const handler = (d: any) => setData(d);

@@ -20,6 +20,7 @@ export class GameEngine {
     frames = 0; survivalFrames = 0; kills = 0; runGold = 0;
     playerLevel = 1; playerXp = 0; xpNeeded = 5; killStats: Record<string, number> = {};
     levelRerolled = false;
+    levelUpData: {choices: any[], rerolled: boolean, hp: number, gold: number} | null = null;
     gameState: 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAMEOVER' = 'PLAYING';
     MAP_SIZE = 2000;
     animationFrameId = 0;
@@ -96,8 +97,9 @@ export class GameEngine {
 
         pool.sort(() => Math.random() - 0.5);
         let choices = pool.slice(0,3);
+        this.levelUpData = { choices, rerolled: this.levelRerolled, hp: this.player.hp, gold: this.runGold };
         gameEvents.emit('STATE_CHANGE', 'LEVEL_UP');
-        gameEvents.emit('LEVEL_UP', { choices, rerolled: this.levelRerolled, hp: this.player.hp, gold: this.runGold });
+        gameEvents.emit('LEVEL_UP', this.levelUpData);
     }
 
     applyChoice(c: any) {
@@ -105,6 +107,7 @@ export class GameEngine {
         else if(c.t === 'upg') c.ref.level++;
         else if(c.t === 'stat') { (this.player as any)[c.s] += 5; this.player.calcDerivedStats(); }
         else if(c.t === 'heal') this.player.hp = this.player.maxHp;
+        this.levelUpData = null;
         this.gameState = 'PLAYING';
         this.updateHUD();
         gameEvents.emit('STATE_CHANGE', 'PLAYING');
