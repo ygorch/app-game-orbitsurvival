@@ -339,7 +339,7 @@ export class GameEngine {
                 w.timer = w.getCooldown(this.player);
             } else if(w.id === 'wand') {
                 let target: Enemy | null = null; let min = 999999;
-                this.enemies.forEach(e => { let d=(e.x-this.player.x)**2 + (e.y-this.player.y)**2; if(d<min){min=d;target=e;} });
+                for (const e of this.enemies) { let d=(e.x-this.player.x)**2 + (e.y-this.player.y)**2; if(d<min){min=d;target=e;} }
                 if(target) {
                     let ang = Math.atan2(target.y-this.player.y, target.x-this.player.x);
                     this.projectiles.push(new Projectile(this.player.x, this.player.y, Math.cos(ang)*10, Math.sin(ang)*10, dmg, 1, '#f1c40f', isCrit));
