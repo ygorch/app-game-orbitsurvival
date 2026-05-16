@@ -21,6 +21,7 @@ export class GameEngine {
     playerLevel = 1; playerXp = 0; xpNeeded = 5; killStats: Record<string, number> = {};
     levelRerolled = false;
     levelUpData: {choices: any[], rerolled: boolean, hp: number, gold: number} | null = null;
+    gameOverData: any = null;
     gameState: 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAMEOVER' = 'PLAYING';
     MAP_SIZE = 2000;
     animationFrameId = 0;
@@ -127,8 +128,18 @@ export class GameEngine {
         this.gameState = 'GAMEOVER';
         saveService.data.gold += this.runGold;
         saveService.save();
-        gameEvents.emit('GAME_OVER', { vic, level: this.playerLevel, kills: this.kills, gold: this.runGold, survivalFrames: this.survivalFrames });
+        this.gameOverData = { 
+            vic, 
+            level: this.playerLevel, 
+            kills: this.kills, 
+            gold: this.runGold, 
+            survivalFrames: this.survivalFrames,
+            player: this.player,
+            weapons: this.weapons,
+            maxFrames: 15 * 60 * 60
+        };
         gameEvents.emit('STATE_CHANGE', 'GAMEOVER');
+        gameEvents.emit('GAME_OVER', this.gameOverData);
     }
 
     createFloatingText(x: number, y: number, t: string, c: string) {
