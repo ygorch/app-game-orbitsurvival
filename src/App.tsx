@@ -12,6 +12,7 @@ import HUD from './ui/components/HUD';
 import LevelUpModal from './ui/components/LevelUpModal';
 import PauseModal from './ui/components/PauseModal';
 import GameOverModal from './ui/components/GameOverModal';
+import AchievementToast from './ui/components/AchievementToast';
 
 export default function App() {
     const [gameState, setGameState] = useState<GameState>('TITLE');
@@ -85,6 +86,8 @@ export default function App() {
                 {gameState === 'LEVEL_UP' && <LevelUpModal />}
                 {gameState === 'PAUSED' && <PauseModal onResume={() => { engine.resume(); changeState('PLAYING'); }} />}
                 {gameState === 'GAMEOVER' && <GameOverModal />}
+                
+                <AchievementToast />
             </main>
         </>
     );

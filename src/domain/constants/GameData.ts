@@ -29,3 +29,16 @@ export const ENEMY_DEFS = [
     { emoji: '💀', hp: 30, spd: 1.5, dmg: 10 }, { emoji: '👾', hp: 50, spd: 1.8, dmg: 20 }, { emoji: '👻', hp: 80, spd: 1.2, dmg: 30 },
     { emoji: '👽', hp: 60, spd: 2.8, dmg: 45 }, { emoji: '👺', hp: 150, spd: 2.0, dmg: 65 }, { emoji: '👹', hp: 500, spd: 0.9, dmg: 100 }
 ];
+
+export const ACHIEVEMENT_DEFS: Record<string, {name: string, desc: string, icon: string}> = {
+    first_blood: { name: 'First Blood', desc: 'Abata o seu primeiro inimigo.', icon: '🩸' },
+    survivor_5: { name: 'Sobrevivente', desc: 'Sobreviva por 5 minutos em uma única run.', icon: '⏱️' },
+    rich_1000: { name: 'Caçador de Tesouros', desc: 'Acumule 1000 moedas de ouro no cofre.', icon: '🪙' },
+    boss_slayer: { name: 'Matador de Chefes', desc: 'Derrote o Oni Ancestral (Chefe Final).', icon: '👑' },
+    level_30: { name: 'Herói em Ascensão', desc: 'Alcance o nível 30 em uma única run.', icon: '⭐' },
+    level_55: { name: 'Veterano', desc: 'Alcance o nível 55 em uma única run.', icon: '🌟' },
+    untouchable: { name: 'Intocável', desc: 'Vença o jogo sem sofrer NENHUM dano.', icon: '🛡️' },
+    ghost: { name: 'Fantasma', desc: 'Sobreviva 5 minutos sem sofrer dano.', icon: '👻' },
+    slayer: { name: 'Carrasco', desc: 'Abata 100 inimigos em uma run.', icon: '⚔️' },
+    gladiator: { name: 'Gladiador', desc: 'Cause um total de 1.000 de dano em uma run.', icon: '💥' }
+};

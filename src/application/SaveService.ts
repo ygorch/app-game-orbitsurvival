@@ -5,6 +5,7 @@ const SAVE_KEY = 'sourlate_react_v1';
 
 const defaultData: SaveData = {
     gold: 50,
+    achievements: {},
     skills: { speed: 0, damage: 0, hp: 0, magnet: 0, str: 0, agi: 0, sta: 0, int: 0, dex: 0, luk: 0, greed: 0, xp: 0 }
 };
 
@@ -22,6 +23,7 @@ class SaveService {
                 const parsed = JSON.parse(savedRaw);
                 if (parsed.skills) {
                     this.data.gold = parsed.gold || 0;
+                    this.data.achievements = parsed.achievements || {};
                     for (let key in defaultData.skills) {
                         (this.data.skills as any)[key] = parsed.skills[key] !== undefined ? parsed.skills[key] : 0;
                     }

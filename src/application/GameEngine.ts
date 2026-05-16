@@ -3,7 +3,7 @@ import { Enemy } from '../domain/entities/Enemy';
 import { Weapon } from '../domain/entities/Weapon';
 import { Projectile } from '../domain/entities/Projectile';
 import { Orb } from '../domain/entities/Orb';
-import { ENEMY_DEFS, WEAPONS_INFO } from '../domain/constants/GameData';
+import { ENEMY_DEFS, WEAPONS_INFO, ACHIEVEMENT_DEFS } from '../domain/constants/GameData';
 import { gameEvents } from './EventEmitter';
 import { inputManager } from '../infrastructure/input/InputManager';
 import { saveService } from './SaveService';
@@ -25,11 +25,30 @@ export class GameEngine {
     gameState: 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAMEOVER' = 'PLAYING';
     MAP_SIZE = 2000;
     animationFrameId = 0;
+    
+    playerTakenDamage = false;
+    totalDamageDealt = 0;
+
+    checkAchievement(id: string) {
+        if (!saveService.data.achievements[id]) {
+            saveService.data.achievements[id] = true;
+            saveService.save();
+            gameEvents.emit('ACHIEVEMENT_UNLOCKED', { id, ...ACHIEVEMENT_DEFS[id] });
+        }
+    }
+
+    dealDamageToEnemy(e: Enemy, dmg: number, isCrit: boolean) {
+        e.hp -= dmg;
+        this.totalDamageDealt += dmg;
+        if(this.totalDamageDealt >= 1000 && this.totalDamageDealt - dmg < 1000) this.checkAchievement('gladiator');
+        this.createFloatingText(e.x, e.y-20, Math.ceil(dmg)+(isCrit?'!':''), isCrit?'#f1c40f':'#fff');
+    }
 
     start(heroId: string, weaponId: string) {
         this.player = new Player(heroId);
         this.weapons = [new Weapon(weaponId)];
         this.frames = 0; this.survivalFrames = 0; this.kills = 0; this.runGold = 0;
+        this.playerTakenDamage = false; this.totalDamageDealt = 0;
         this.playerLevel = 1; this.playerXp = 0; this.xpNeeded = 5; this.killStats = {};
         this.levelRerolled = false;
         this.enemies = []; this.orbs = []; this.projectiles = []; this.floatingTexts = [];
@@ -75,6 +94,8 @@ export class GameEngine {
             this.gameState = 'LEVEL_UP'; this.playerXp -= this.xpNeeded;
             this.playerLevel++; this.xpNeeded = this.playerLevel * 10;
             this.levelRerolled = false;
+            if(this.playerLevel === 30) this.checkAchievement('level_30');
+            if(this.playerLevel === 55) this.checkAchievement('level_55');
         }
         this.updateHUD();
         
@@ -125,6 +146,7 @@ export class GameEngine {
     }
 
     gameOver(vic: boolean) {
+        if(vic && !this.playerTakenDamage) this.checkAchievement('untouchable');
         this.gameState = 'GAMEOVER';
         saveService.data.gold += this.runGold;
         saveService.save();
@@ -178,7 +200,7 @@ export class GameEngine {
                 let r = 100 + (w.level*10);
                 this.projectiles.push(Projectile.createSlash(this.player.x, this.player.y, r, 10, '#ecf0f1', true));
                 this.enemies.forEach(e => { if(Math.hypot(e.x-this.player.x, e.y-this.player.y) < r) { 
-                    e.hp -= dmg; this.createFloatingText(e.x, e.y-20, Math.ceil(dmg)+(isCrit?'!':''), isCrit?'#f1c40f':'#fff'); e.x += (e.x-this.player.x)*0.1; 
+                    this.dealDamageToEnemy(e, dmg, isCrit); e.x += (e.x-this.player.x)*0.1; 
                 }});
                 w.timer = w.getCooldown(this.player);
             } else if(w.id === 'sword' || w.id === 'knife') {
@@ -191,7 +213,7 @@ export class GameEngine {
                         let eAng = Math.atan2(e.y-this.player.y, e.x-this.player.x);
                         let diff = Math.abs(eAng - ang); if(diff>Math.PI) diff = 2*Math.PI - diff;
                         if(diff < Math.PI/3) { 
-                            e.hp -= dmg; this.createFloatingText(e.x, e.y-20, Math.ceil(dmg)+(isCrit?'!':''), isCrit?'#f1c40f':'#fff'); 
+                            this.dealDamageToEnemy(e, dmg, isCrit); 
                             e.x += Math.cos(ang)*(w.id==='sword'?20:5); e.y += Math.sin(ang)*(w.id==='sword'?20:5); 
                         }
                     }
@@ -212,7 +234,7 @@ export class GameEngine {
             } else if(w.id === 'aura') {
                 let r = (w.r || 80) + (w.level*15);
                 this.enemies.forEach(e => { if(Math.hypot(e.x-this.player.x, e.y-this.player.y) < r) {
-                    e.hp -= dmg; this.createFloatingText(e.x, e.y-20, Math.ceil(dmg)+(isCrit?'!':''), isCrit?'#f1c40f':'#fff');
+                    this.dealDamageToEnemy(e, dmg, isCrit);
                 }});
                 w.timer = w.getCooldown(this.player);
             }
@@ -230,7 +252,7 @@ export class GameEngine {
                 for(let j=this.enemies.length-1; j>=0; j--) { 
                     let e=this.enemies[j]; 
                     if(Math.hypot(e.x-p.x, e.y-p.y) < e.r+8) { 
-                        e.hp -= p.dmg; this.createFloatingText(e.x, e.y-20, Math.ceil(p.dmg)+(p.crit?'!':''), p.crit?'#f1c40f':'#fff');
+                        this.dealDamageToEnemy(e, p.dmg, p.crit);
                         p.p--; if(p.p<=0){p.life=0;break;} 
                     } 
                 }
@@ -244,7 +266,7 @@ export class GameEngine {
             let dist = e.update(this.player.x, this.player.y, viewDist);
             if(dist < e.r + this.player.radius) {
                 let hit = this.player.takeDamage(e.dmg);
-                if(hit.dmg > 0) this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c');
+                if(hit.dmg > 0) { this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c'); this.playerTakenDamage = true; }
                 else if(hit.dodged) this.createFloatingText(this.player.x, this.player.y-20, "DODGE!", '#3498db');
                 if(this.player.hp <= 0) this.gameOver(false);
             }
@@ -252,9 +274,13 @@ export class GameEngine {
             if(e.hp <= 0) {
                 if(!e.despawned) {
                     this.kills++; this.killStats[e.emoji] = (this.killStats[e.emoji]||0)+1;
+                    if(this.kills === 1) this.checkAchievement('first_blood');
+                    if(this.kills === 100) this.checkAchievement('slayer');
+                    if(e.emoji === '👹') this.checkAchievement('boss_slayer');
+                    
                     let v = 1; if(e.maxHp>100) v=10; if(e.maxHp>400) v=50;
                     if(Math.random() < 0.5) this.orbs.push(new Orb(e.x, e.y, v));
-                    if(Math.random() < (saveService.data.skills.greed * 0.02)) { this.runGold++; saveService.data.gold++; }
+                    if(Math.random() < (saveService.data.skills.greed * 0.02)) { this.runGold++; saveService.data.gold++; if(saveService.data.gold >= 1000) this.checkAchievement('rich_1000'); }
                 }
                 this.enemies.splice(i,1);
             }
@@ -269,6 +295,11 @@ export class GameEngine {
         gameEvents.emit('RENDER_TICK', this);
         
         if (this.gameState === 'PLAYING') {
+            if(this.survivalFrames === 5 * 60 * 60) {
+                this.checkAchievement('survivor_5');
+                if(!this.playerTakenDamage) this.checkAchievement('ghost');
+            }
+            if(saveService.data.gold >= 1000) this.checkAchievement('rich_1000');
             this.animationFrameId = requestAnimationFrame(this.loop);
         }
         } catch (error) {

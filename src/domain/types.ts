@@ -2,6 +2,7 @@ export type GameState = 'TITLE' | 'SKILL_TREE' | 'CHAR_SELECT' | 'PLAYING' | 'PA
 
 export interface SaveData {
   gold: number;
+  achievements: Record<string, boolean>;
   skills: {
     speed: number; damage: number; hp: number; magnet: number;
     str: number; agi: number; sta: number; int: number; dex: number; luk: number;
