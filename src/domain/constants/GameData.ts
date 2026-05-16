@@ -55,5 +55,6 @@ export const CONSUMABLE_DEFS: Record<string, {name: string, icon: string, desc: 
     'acid': { name: 'Ácido', icon: '🧪', desc: 'Poça de ácido (10 dano/s).', type: 'field_dmg', val: 10, duration: 15 },
     'gas': { name: 'Gás', icon: '💨', desc: 'Névoa letal (lentidão + 5 dano/s).', type: 'field_slow_dmg', val: 5, duration: 15 },
     'ice': { name: 'Barreira de Gelo', icon: '🧊', desc: 'Muralha intransponível temporária.', type: 'wall', val: 0, duration: 15 },
-    'pitch': { name: 'Piche', icon: '🛢️', desc: 'Poça de piche (lentidão).', type: 'field_trap', val: 0, duration: 15 }
+    'pitch': { name: 'Piche', icon: '🛢️', desc: 'Poça de piche (lentidão).', type: 'field_trap', val: 0, duration: 15 },
+    'gold_coin': { name: 'Moeda de Ouro', icon: '🪙', desc: 'Concede 1 moeda de ouro ao pegar.', type: 'gold', val: 1, duration: 0 }
 };

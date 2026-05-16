@@ -4,7 +4,7 @@ import { gameEvents } from './EventEmitter';
 const SAVE_KEY = 'sourlate_react_v1';
 
 const defaultData: SaveData = {
-    gold: 50,
+    gold: 0,
     achievements: {},
     skills: { speed: 0, damage: 0, hp: 0, magnet: 0, str: 0, agi: 0, sta: 0, int: 0, dex: 0, luk: 0, greed: 0, xp: 0 }
 };

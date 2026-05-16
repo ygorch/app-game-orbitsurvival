@@ -410,9 +410,14 @@ export class GameEngine {
                     
                     let dropChance = e.maxHp > 100 ? 0.05 : 0.01;
                     if(Math.random() < dropChance) {
-                        let cKeys = Object.keys(CONSUMABLE_DEFS);
+                        let cKeys = Object.keys(CONSUMABLE_DEFS).filter(k => k !== 'gold_coin');
                         let randomCons = cKeys[Math.floor(Math.random()*cKeys.length)];
                         this.consumablesOnGround.push(new ConsumableOnGround(e.x, e.y, randomCons));
+                    }
+                    if (this.survivalFrames >= 2 * 60 * 60) {
+                        if (Math.random() < 0.005) {
+                            this.consumablesOnGround.push(new ConsumableOnGround(e.x, e.y, 'gold_coin'));
+                        }
                     }
                 }
                 this.enemies.splice(i,1);
@@ -430,8 +435,13 @@ export class GameEngine {
             let c = this.consumablesOnGround[i];
             c.despawnTimer--;
             if(c.despawnTimer <= 0) { this.consumablesOnGround.splice(i,1); continue; }
-            if(this.inventory.length < 5) {
-                if(Math.hypot(this.player.x-c.x, this.player.y-c.y) < this.player.radius+c.r) {
+            
+            if(Math.hypot(this.player.x-c.x, this.player.y-c.y) < this.player.radius+c.r) {
+                if (c.id === 'gold_coin') {
+                    this.runGold++; saveService.data.gold++; saveService.save();
+                    this.consumablesOnGround.splice(i,1);
+                    this.updateHUD();
+                } else if(this.inventory.length < 5) {
                     this.inventory.push(c.id);
                     this.consumablesOnGround.splice(i,1);
                     this.updateHUD();
