@@ -302,7 +302,16 @@ export class GameEngine {
             let view = Math.max(inputManager.canvasWidth, inputManager.canvasHeight) / 2;
             for(let i=0; i<count; i++) {
                 let ang = Math.random() * Math.PI * 2; let r = view + 100;
-                this.enemies.push(new Enemy(this.player.x + Math.cos(ang)*r, this.player.y + Math.sin(ang)*r, ENEMY_DEFS[Math.floor(Math.random()*(maxIdx+1))], this.playerLevel, this.survivalFrames));
+                let sx = this.player.x + Math.cos(ang)*r;
+                let sy = this.player.y + Math.sin(ang)*r;
+                
+                sx = Math.max(-this.MAP_SIZE, Math.min(this.MAP_SIZE, sx));
+                sy = Math.max(-this.MAP_SIZE, Math.min(this.MAP_SIZE, sy));
+                
+                let roll = Math.pow(Math.random(), 2);
+                let spawnIdx = Math.floor(roll * (maxIdx + 1));
+                
+                this.enemies.push(new Enemy(sx, sy, ENEMY_DEFS[spawnIdx], this.playerLevel, this.survivalFrames));
             }
         }
 
@@ -404,8 +413,8 @@ export class GameEngine {
                     if(this.kills === 100) this.checkAchievement('slayer');
                     if(e.emoji === '👹') this.checkAchievement('boss_slayer');
                     
-                    let v = 1; if(e.maxHp>100) v=10; if(e.maxHp>400) v=50;
-                    if(Math.random() < 0.5) this.orbs.push(new Orb(e.x, e.y, v));
+                    let v = Math.max(1, Math.floor(e.maxHp / 5));
+                    this.orbs.push(new Orb(e.x, e.y, v));
                     if(Math.random() < (saveService.data.skills.greed * 0.02)) { this.runGold++; saveService.data.gold++; if(saveService.data.gold >= 1000) this.checkAchievement('rich_1000'); }
                     
                     let dropChance = e.maxHp > 100 ? 0.05 : 0.01;
