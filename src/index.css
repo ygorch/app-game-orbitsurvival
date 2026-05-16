@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-outline: #99907c;
+  --color-secondary: #dfc29f;
+  --color-surface-container: #20201f;
+  --color-on-background: #e5e2e1;
+  --color-primary-fixed-dim: #e9c349;
+  --color-surface-variant: #353535;
+  --color-primary-container: #d4af37;
+  --color-primary: #f2ca50;
+  --color-error: #ffb4ab;
+  --color-on-surface: #e5e2e1;
+  --color-background: #131313;
+  --color-surface: #131313;
+  --color-surface-highest: #2b2a29;
+  
+  --font-headline-md: 'EB Garamond', serif;
+  --font-body-md: 'Inter', sans-serif;
+  --font-headline-xl: 'EB Garamond', serif;
+  --font-stat-lg: 'Archivo Narrow', sans-serif;
+}
+
+body {
+  @apply bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none;
+  background-color: #2C1A16; 
+  background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.08" mix-blend-mode="multiply"/></svg>');
+}
+
+.leather-inset { background-color: #3E2723; box-shadow: inset 0 4px 8px rgba(0,0,0,0.8); border: 1px solid #1A1A1A; }
+.metal-frame { background-color: #1A1A1A; border-top: 1px solid #d4af37; box-shadow: 0 4px 8px rgba(0,0,0,0.85); }
+.metal-button { background: linear-gradient(to bottom, #d4af37, #735c00); border-top: 1px solid #ffe088; box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.2); transition: all 0.1s ease; color: #3c2f00;}
+.metal-button:active { transform: translateY(2px); box-shadow: inset 0 4px 6px rgba(0,0,0,0.8); border-top: 1px solid transparent; }
+.metal-button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; }
+.embossed-text { text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 -1px 1px rgba(255,255,255,0.1); }
+.glow-border { box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(212, 175, 55, 0.3); border-color: #f2ca50 !important; }
+
+canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+.pointer-events-none-override { pointer-events: none; }
+.pointer-events-auto-override { pointer-events: auto; }
