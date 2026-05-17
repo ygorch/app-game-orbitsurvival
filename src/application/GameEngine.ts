@@ -9,6 +9,7 @@ import { ENEMY_DEFS, WEAPONS_INFO, ACHIEVEMENT_DEFS, CONSUMABLE_DEFS } from '../
 import { gameEvents } from './EventEmitter';
 import { inputManager } from '../infrastructure/input/InputManager';
 import { saveService } from './SaveService';
+import { AudioManager } from './AudioManager';
 import { Logger } from '../infrastructure/logging/Logger';
 
 export class GameEngine {
@@ -100,6 +101,7 @@ export class GameEngine {
 
     levelUp(isReroll = false) {
         if(!isReroll) {
+            AudioManager.play('ui', 'levelup');
             this.gameState = 'LEVEL_UP'; this.playerXp -= this.xpNeeded;
             this.playerLevel++; this.xpNeeded = this.playerLevel * 10;
             this.levelRerolled = false;
@@ -209,6 +211,8 @@ export class GameEngine {
         let def = CONSUMABLE_DEFS[id];
         if(!def) return;
         
+        AudioManager.play('consumables', id);
+        
         if(def.type === 'heal_over_time') {
             this.activeBuffs.push({id, type: def.type, val: def.val, timer: def.duration*60, tickCounter: 5*60});
         } else if(def.type === 'shield') {
@@ -243,6 +247,15 @@ export class GameEngine {
         this.updateHUD();
     }
 
+    dropConsumable(idx: number) {
+        if(this.inventory[idx]) {
+            this.consumablesOnGround.push(new ConsumableOnGround(this.player.x, this.player.y, this.inventory[idx]));
+            this.inventory.splice(idx, 1);
+            this.keyHoldTimers[idx] = 0;
+            this.updateHUD();
+        }
+    }
+
     loop = () => {
         if(this.gameState !== 'PLAYING') return;
         try {
@@ -254,11 +267,8 @@ export class GameEngine {
                     if(this.inventory[idx]) {
                         this.keyHoldTimers[idx]++;
                         if(this.keyHoldTimers[idx] === 180) { // drop
-                            this.consumablesOnGround.push(new ConsumableOnGround(this.player.x, this.player.y, this.inventory[idx]));
-                            this.inventory.splice(idx, 1);
-                            this.keyHoldTimers[idx] = 0;
+                            this.dropConsumable(idx);
                             inputManager.keys[k] = false;
-                            this.updateHUD();
                         }
                     }
                 } else {
@@ -324,6 +334,7 @@ export class GameEngine {
             if(isCrit) dmg *= 2;
 
             if(w.id === 'axe') {
+                AudioManager.play('weapons', 'axe');
                 let r = 100 + (w.level*10);
                 this.projectiles.push(Projectile.createSlash(this.player.x, this.player.y, r, 10, '#ecf0f1', true));
                 this.enemies.forEach(e => { if(Math.hypot(e.x-this.player.x, e.y-this.player.y) < r) { 
@@ -331,6 +342,7 @@ export class GameEngine {
                 }});
                 w.timer = w.getCooldown(this.player);
             } else if(w.id === 'sword' || w.id === 'knife') {
+                AudioManager.play('weapons', w.id);
                 let r = w.id === 'sword' ? 80+(w.level*10) : 50+(w.level*5);
                 let ang = Math.atan2(inputManager.mouseY, inputManager.mouseX);
                 this.projectiles.push(Projectile.createSlash(this.player.x, this.player.y, r, 8, '#bdc3c7', false, ang));
@@ -350,15 +362,18 @@ export class GameEngine {
                 let target: Enemy | null = null; let min = 999999;
                 for (const e of this.enemies) { let d=(e.x-this.player.x)**2 + (e.y-this.player.y)**2; if(d<min){min=d;target=e;} }
                 if(target) {
+                    AudioManager.play('weapons', 'wand');
                     let ang = Math.atan2(target.y-this.player.y, target.x-this.player.x);
                     this.projectiles.push(new Projectile(this.player.x, this.player.y, Math.cos(ang)*10, Math.sin(ang)*10, dmg, 1, '#f1c40f', isCrit));
                     w.timer = w.getCooldown(this.player);
                 }
             } else if(w.id === 'bow' || w.id === 'pistol') {
+                AudioManager.play('weapons', w.id);
                 let ang = Math.atan2(inputManager.mouseY, inputManager.mouseX); let spd = w.id==='bow'?15:25;
                 this.projectiles.push(new Projectile(this.player.x, this.player.y, Math.cos(ang)*spd, Math.sin(ang)*spd, dmg, w.id==='bow'?2:1, '#e67e22', isCrit));
                 w.timer = w.getCooldown(this.player);
             } else if(w.id === 'aura') {
+                AudioManager.play('weapons', 'aura');
                 let r = (w.r || 80) + (w.level*15);
                 this.enemies.forEach(e => { if(Math.hypot(e.x-this.player.x, e.y-this.player.y) < r) {
                     this.dealDamageToEnemy(e, dmg, isCrit);
@@ -400,7 +415,7 @@ export class GameEngine {
                     e.x += (e.x - this.player.x) * 0.5; e.y += (e.y - this.player.y) * 0.5;
                 } else {
                     let hit = this.player.takeDamage(e.dmg);
-                    if(hit.dmg > 0) { this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c'); this.playerTakenDamage = true; }
+                    if(hit.dmg > 0) { AudioManager.play('player', 'hit'); this.createFloatingText(this.player.x, this.player.y-20, `-${hit.dmg}`, '#e74c3c'); this.playerTakenDamage = true; }
                     else if(hit.dodged) this.createFloatingText(this.player.x, this.player.y-20, "DODGE!", '#3498db');
                     if(this.player.hp <= 0) this.gameOver(false);
                 }
@@ -408,13 +423,13 @@ export class GameEngine {
 
             if(e.hp <= 0) {
                 if(!e.despawned) {
+                    AudioManager.play('enemies', e.id);
                     this.kills++; this.killStats[e.emoji] = (this.killStats[e.emoji]||0)+1;
                     if(this.kills === 1) this.checkAchievement('first_blood');
                     if(this.kills === 100) this.checkAchievement('slayer');
                     if(e.emoji === '👹') this.checkAchievement('boss_slayer');
                     
-                    let v = Math.max(1, Math.floor(e.maxHp / 5));
-                    this.orbs.push(new Orb(e.x, e.y, v));
+                    if(Math.random() < 0.5) this.orbs.push(new Orb(e.x, e.y, e.exp));
                     if(Math.random() < (saveService.data.skills.greed * 0.02)) { this.runGold++; saveService.data.gold++; if(saveService.data.gold >= 1000) this.checkAchievement('rich_1000'); }
                     
                     let dropChance = e.maxHp > 100 ? 0.05 : 0.01;

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { GameState } from '../../domain/types';
 import { SKILL_DEFS } from '../../domain/constants/GameData';
 import { saveService } from '../../application/SaveService';
+import { AudioManager } from '../../application/AudioManager';
 
 export default function SkillTree({ onChangeState }: { onChangeState: (s: GameState) => void }) {
     const [selected, setSelected] = useState<string | null>(null);
     const gold = saveService.data.gold;
 
     const buy = () => {
+        AudioManager.play('ui', 'select');
         if (!selected) return;
         const s = SKILL_DEFS[selected];
         const cur = (saveService.data.skills as any)[selected];
@@ -71,7 +73,7 @@ export default function SkillTree({ onChangeState }: { onChangeState: (s: GameSt
                         const s = SKILL_DEFS[key];
                         const cur = (saveService.data.skills as any)[key];
                         return (
-                            <div key={key} onClick={() => setSelected(key)} className={`leather-inset p-3 flex flex-col items-center text-center cursor-pointer border-2 transition-colors hover:border-primary ${selected === key ? 'border-primary bg-[#4a322d]' : 'border-transparent'}`}>
+                            <div key={key} onClick={() => { AudioManager.play('ui', 'select'); setSelected(key); }} className={`leather-inset p-3 flex flex-col items-center text-center cursor-pointer border-2 transition-colors hover:border-primary ${selected === key ? 'border-primary bg-[#4a322d]' : 'border-transparent'}`}>
                                 <div className="text-4xl mb-2">{s.icon}</div>
                                 <h3 className="text-primary font-bold leading-tight text-sm">{s.name} <br/><span className="text-xs text-gray-400">(Nv {cur}/{s.max})</span></h3>
                             </div>
@@ -80,7 +82,7 @@ export default function SkillTree({ onChangeState }: { onChangeState: (s: GameSt
                 </div>
                 {renderPreview()}
             </div>
-            <button className="metal-button mt-4 font-headline-md px-12 py-3 uppercase tracking-widest" onClick={() => onChangeState('TITLE')}>Voltar ao Menu</button>
+            <button className="metal-button mt-4 font-headline-md px-12 py-3 uppercase tracking-widest" onClick={() => { AudioManager.play('ui', 'select'); onChangeState('TITLE'); }}>Voltar ao Menu</button>
         </section>
     );
 }

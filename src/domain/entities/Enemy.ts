@@ -1,10 +1,10 @@
 export class Enemy {
-    x: number; y: number; r: number = 16; emoji: string;
+    x: number; y: number; r: number = 16; emoji: string; id: string; exp: number;
     maxHp: number; hp: number; speed: number; dmg: number; despawned: boolean = false;
     speedModifier: number = 1;
 
     constructor(x: number, y: number, def: any, playerLevel: number, survivalFrames: number) {
-        this.x = x; this.y = y; this.emoji = def.emoji;
+        this.x = x; this.y = y; this.emoji = def.emoji; this.id = def.id; this.exp = def.exp;
         let scale = 1 + (playerLevel*0.1) + (survivalFrames/(60*60*5));
         this.maxHp = Math.ceil(def.hp * scale); this.hp = this.maxHp;
         this.speed = def.spd + (Math.random()*0.2);

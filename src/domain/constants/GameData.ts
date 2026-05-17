@@ -26,8 +26,12 @@ export const SKILL_DEFS: Record<string, any> = {
 };
 
 export const ENEMY_DEFS = [
-    { emoji: '💀', hp: 30, spd: 1.5, dmg: 10 }, { emoji: '👾', hp: 50, spd: 1.8, dmg: 20 }, { emoji: '👻', hp: 80, spd: 1.2, dmg: 30 },
-    { emoji: '👽', hp: 60, spd: 2.8, dmg: 45 }, { emoji: '👺', hp: 150, spd: 2.0, dmg: 65 }, { emoji: '👹', hp: 500, spd: 0.9, dmg: 100 }
+    { id: 'skull', emoji: '💀', hp: 30, spd: 1.5, dmg: 10, exp: 1 },
+    { id: 'alien1', emoji: '👾', hp: 50, spd: 1.8, dmg: 20, exp: 3 },
+    { id: 'ghost', emoji: '👻', hp: 80, spd: 1.2, dmg: 30, exp: 5 },
+    { id: 'alien2', emoji: '👽', hp: 60, spd: 2.8, dmg: 45, exp: 10 },
+    { id: 'goblin', emoji: '👺', hp: 150, spd: 2.0, dmg: 65, exp: 15 },
+    { id: 'oni', emoji: '👹', hp: 500, spd: 0.9, dmg: 100, exp: 30 }
 ];
 
 export const ACHIEVEMENT_DEFS: Record<string, {name: string, desc: string, icon: string}> = {
